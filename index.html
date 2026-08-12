@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Proyectos">
+<meta name="theme-color" content="#FAF5EF">
+<title>Proyectos · Como Sentirse Bien</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══════════ TOKENS · DESIGN.md §2 ══════════ */
+:root{
+  --verde-bosque:#1D342E; --verde-medio:#334F46; --salvia:#96A694;
+  --salvia-claro:#E0E5D9; --salvia-niebla:#EFF2EC;
+  --oro:#A18039; --oro-claro:#C4A96B; --oro-tostado:#7D6428; --oro-palido:#EFE6D2;
+  --taupe:#9E8D77; --taupe-claro:#E4DCD0; --grafito:#2B322D;
+  --crema:#FAF5EF; --papel:#FDFCFA; --blanco:#FFFFFF;
+  --texto:#1D342E; --texto-2:#56605A; --texto-3:#6E766F;
+  --texto-oscuro:#FAF5EF; --texto-apoyo-oscuro:#96A694;
+  /* El ámbar de acción (§2.4) queda deliberadamente fuera: es color de conversión
+     y esta app no vende nada. La acción principal es el primario verde bosque. */
+  --exito:#276B4E; --exito-bg:#E4F1EA;
+  --aviso:#7A6029; --aviso-bg:#FBF1DE;
+  --error:#B3452F; --error-bg:#F8E8E3;
+  --info:#3A5F6F; --info-bg:#E6EEF1;
+  --campo-borde:#D9D2C6;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--crema)}
+body{
+  background:var(--crema); color:var(--texto);
+  font-family:Inter,-apple-system,'Segoe UI',Helvetica,sans-serif;
+  font-size:16px; line-height:1.7; min-height:100vh;
+  padding-bottom:64px;
+}
+/* ══════════ TIPOGRAFÍA · §3.2 ══════════ */
+/* Escala móvil por defecto; tablet y desktop en los saltos de §8. */
+h1,h2,h3,.display{font-family:'Cormorant Garamond','EB Garamond',Georgia,serif;color:var(--texto)}
+.display{font-size:40px;font-weight:300;line-height:1.05;letter-spacing:-.01em}
+h1{font-size:32px;font-weight:400;line-height:1.15;letter-spacing:-.005em}
+h2{font-size:26px;font-weight:400;line-height:1.25}
+h3{font-size:22px;font-weight:500;line-height:1.3}
+h4{font-family:Inter;font-size:17px;font-weight:600;line-height:1.4}
+.eyebrow{font-size:11px;font-weight:500;line-height:1.4;letter-spacing:.22em;text-transform:uppercase;color:var(--oro-tostado)}
+.body-l{font-size:17px;line-height:1.7}
+.small{font-size:14px;line-height:1.6;color:var(--texto-2)}
+.caption{font-size:13px;line-height:1.5;letter-spacing:.01em;color:var(--texto-3)}
+.num{font-variant-numeric:tabular-nums}
+.serif-cita{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:20px;line-height:1.5;color:var(--texto-2)}
+/* ══════════ LAYOUT · §5 ══════════ */
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+.texto-max{max-width:680px}
+.seccion{padding:64px 0}
+.stack-8>*+*{margin-top:8px} .stack-16>*+*{margin-top:16px}
+.stack-24>*+*{margin-top:24px} .stack-32>*+*{margin-top:32px}
+.stack-48>*+*{margin-top:48px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.grid{display:grid;gap:24px}
+/* ── Tablet · §8: 2 columnas, padding 48, escala intermedia ── */
+@media(min-width:640px){
+  .wrap{padding:0 48px}
+  .grid.dos{grid-template-columns:1fr 1fr}
+  .display{font-size:52px} h1{font-size:40px} h2{font-size:30px} h3{font-size:24px}
+  h4{font-size:18px} .eyebrow{font-size:12px} .body-l{font-size:18px} .small{font-size:15px}
+  body{font-size:17px}
+  .serif-cita{font-size:22px}
+  .top-in{height:80px}
+  button.b{min-height:48px}
+}
+/* ── Desktop · §8: 12 columnas, padding 80, escala completa ── */
+@media(min-width:1024px){
+  .wrap{padding:0 80px}
+  .seccion{padding:96px 0}
+  .display{font-size:64px} h1{font-size:48px} h2{font-size:34px} h3{font-size:26px}
+  .body-l{font-size:19px}
+  .serif-cita{font-size:24px}
+}
+/* ══════════ NAVEGACIÓN · §4.4 ══════════ */
+header.top{
+  background:rgba(250,245,239,.92); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--taupe-claro);
+  position:sticky; top:0; z-index:50; padding-top:env(safe-area-inset-top);
+}
+/* §4.4 pide 80 px de cabecera. En móvil se reduce a 64: con la fila de pestañas
+   debajo, 80 dejaría 128 px fijos, casi un quinto de la pantalla, y §5 antepone
+   el aire. Desde 640 px se respeta el valor del documento. */
+.top-in{display:flex;align-items:center;justify-content:space-between;height:64px}
+.marca{display:flex;align-items:baseline;gap:10px}
+.marca .mono{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:500;letter-spacing:.06em}
+.marca .mono .oro{color:var(--oro)}
+.marca .sub{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--texto-3)}
+nav.tabs{display:flex;gap:24px;border-bottom:1px solid var(--taupe-claro);overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{
+  background:none;border:none;font-family:Inter;font-size:16px;color:var(--texto-2);
+  padding:14px 0;cursor:pointer;white-space:nowrap;position:relative;
+}
+nav.tabs button.on{color:var(--texto);font-weight:500}
+nav.tabs button.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--oro)}
+/* ══════════ TARJETAS · §4.2 ══════════ */
+.card{background:var(--blanco);border:1px solid var(--taupe-claro);border-radius:12px;padding:28px 32px}
+.card.clic{cursor:pointer;transition:border-color 160ms ease-out,transform 160ms ease-out}
+.card.clic:hover{border-color:var(--taupe);transform:translateY(-2px)}
+.card.destacada{border-left:3px solid var(--oro);border-top-left-radius:0;border-bottom-left-radius:0}
+.card.oscura{background:var(--verde-bosque);border:none;color:var(--texto-oscuro)}
+.card.oscura h1,.card.oscura h2,.card.oscura h3{color:var(--texto-oscuro)}
+.card.oscura .small,.card.oscura .caption{color:var(--texto-apoyo-oscuro)}
+.card.oscura .eyebrow{color:var(--oro-claro)}          /* §2.6.3: sobre oscuro, oro claro */
+.card.oscura .barra{background:rgba(250,245,239,.18)}
+.card.oscura .barra>div{background:var(--texto-oscuro)}
+.card.oscura .barra.tiempo>div{background:var(--salvia)}
+.card.tenue{background:var(--salvia-niebla);border:none}
+/* ══════════ BOTONES · §4.1 ══════════ */
+/* Sin variante ámbar: §2.4 la reserva a conversión y esta app no vende nada.
+   La acción principal es siempre el primario verde bosque (§4.1: enviar, guardar). */
+button.b{font-family:Inter;font-size:16px;font-weight:500;letter-spacing:.01em;line-height:1;
+  border-radius:999px;padding:14px 28px;min-height:52px;cursor:pointer;transition:all 160ms ease-out}
+button.b:active{transform:scale(.98)}
+button.b:focus-visible{outline:2px solid var(--verde-bosque);outline-offset:2px}
+.b-primario{background:var(--verde-bosque);color:var(--texto-oscuro);border:none}
+.b-primario:hover{background:var(--verde-medio)}
+.b-secundario{background:transparent;color:var(--verde-bosque);border:1px solid var(--verde-bosque)}
+.b-secundario:hover{background:var(--salvia-niebla)}
+/* §4.1 · sobre oscuro: CTA dentro de una sección verde */
+.b-oscuro{background:var(--texto-oscuro);color:var(--verde-bosque);border:none}
+.b-oscuro:hover{background:var(--salvia-claro)}
+.b-oscuro-2{background:transparent;color:var(--texto-oscuro);border:1px solid var(--salvia)}
+.b-oscuro-2:hover{background:rgba(250,245,239,.10)}
+.b-fantasma{background:transparent;color:var(--texto-2);border:none;padding:14px 16px}
+.b-fantasma:hover{color:var(--texto)}
+/* §8: área táctil mínima 48 × 48. El «mini» reduce el peso visual, no el objetivo. */
+.b-mini{min-height:48px;padding:10px 18px;font-size:14px}
+.b-full{width:100%}
+.b-quitar{min-height:48px;width:48px;padding:0;background:none;border:none;color:var(--texto-3);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.b-quitar:hover{color:var(--error)}
+/* ══════════ FORMULARIOS · §4.3 ══════════ */
+label.lb{display:block;font-size:15px;font-weight:500;color:var(--texto);margin-bottom:6px}
+input[type=text],input[type=number],input[type=date],textarea,select{
+  width:100%;min-height:48px;background:var(--blanco);border:1px solid var(--campo-borde);
+  border-radius:8px;padding:12px 14px;font-family:Inter;font-size:17px;color:var(--texto);
+}
+textarea{min-height:96px;line-height:1.6;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--verde-bosque);box-shadow:0 0 0 3px rgba(29,52,46,.12)}
+::placeholder{color:var(--texto-3)}
+select{appearance:none;-webkit-appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--texto-2) 50%),linear-gradient(135deg,var(--texto-2) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+input[type=range]{width:100%;min-height:0;padding:0;border:none;background:none;accent-color:var(--verde-bosque)}
+/* progreso · §4.3: pista taupe claro, relleno verde bosque, 4 px */
+.barra{height:4px;background:var(--taupe-claro);border-radius:2px;overflow:hidden}
+.barra>div{height:100%;background:var(--verde-bosque);border-radius:2px;transition:width 400ms ease-out}
+.barra.gruesa{height:6px}
+.barra.tiempo>div{background:var(--taupe)}
+/* Escala de puntuación · §4.3: rampa de un solo tono, de salvia claro a verde
+   medio, nunca rojo→verde. El punto elegido lleva anillo de 2 px en oro.
+   Los tonos de la rampa los calcula rampa() en JS. */
+.escala{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px}
+@media(min-width:640px){.escala{grid-template-columns:repeat(10,1fr)}}
+.escala button{min-height:48px;border-radius:8px;border:1px solid var(--taupe-claro);
+  cursor:pointer;font-family:Inter;font-size:14px;font-variant-numeric:tabular-nums;transition:all 160ms ease-out}
+.escala button.sel{outline:2px solid var(--oro);outline-offset:-2px;border-color:transparent}
+/* Control segmentado: dos o tres opciones excluyentes. No es una escala, así que
+   no lleva rampa; solo el anillo dorado de selección. */
+.segmentado{display:flex;gap:6px}
+.segmentado button{flex:1;min-height:48px;border-radius:8px;border:1px solid var(--taupe-claro);
+  cursor:pointer;font-family:Inter;font-size:14px;color:var(--texto);background:var(--salvia-niebla);
+  transition:all 160ms ease-out}
+.segmentado button.sel{outline:2px solid var(--oro);outline-offset:-2px;background:var(--salvia-claro)}
+/* Filtros. No son acciones: un filtro elegido no puede parecer el botón principal
+   de la pantalla (§4.1 reserva el primario a enviar, guardar, continuar). */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{min-height:48px;padding:10px 18px;border-radius:999px;cursor:pointer;
+  font-family:Inter;font-size:14px;color:var(--texto-2);background:transparent;
+  border:1px solid var(--taupe-claro);transition:all 160ms ease-out}
+.chips button:hover{border-color:var(--taupe);color:var(--texto)}
+.chips button.sel{background:var(--salvia-niebla);color:var(--texto);border-color:transparent;
+  outline:2px solid var(--oro);outline-offset:-2px}
+/* ══════════ ELEMENTOS DE MARCA · §4.5 ══════════ */
+/* Filete divisor: 64 px de línea en oro con un punto de 4 px centrado.
+   28 + 2 + 4 + 2 + 28 = 64. */
+.filete{display:flex;align-items:center;gap:2px;margin:16px 0}
+.filete i{display:block;height:1px;width:28px;background:var(--oro)}
+.filete b{display:block;width:4px;height:4px;border-radius:50%;background:var(--oro)}
+.etiqueta{display:inline-block;font-size:13px;line-height:1;padding:6px 12px;border-radius:999px;
+  background:var(--salvia-niebla);color:var(--texto-2);border:1px solid var(--taupe-claro)}
+.etiqueta.oro{background:var(--oro-palido);color:var(--oro-tostado);border-color:transparent}
+.etiqueta.exito{background:var(--exito-bg);color:var(--exito);border-color:transparent}
+.etiqueta.aviso{background:var(--aviso-bg);color:var(--aviso);border-color:transparent}
+.etiqueta.info{background:var(--info-bg);color:var(--info);border-color:transparent}
+.cita{background:var(--info-bg);border-left:3px solid var(--info);padding:16px 20px;border-radius:0 8px 8px 0}
+/* ══════════ PROFUNDIDAD · §6 ══════════ */
+.velo{position:fixed;inset:0;background:rgba(29,52,46,.45);z-index:100;display:none;
+  align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px}
+.velo.abierto{display:flex}
+.modal{background:var(--blanco);border-radius:12px;box-shadow:0 12px 40px rgba(29,52,46,.16);
+  width:100%;max-width:640px;padding:32px}
+.aviso-flotante{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:200;
+  background:var(--verde-bosque);color:var(--texto-oscuro);padding:12px 24px;border-radius:999px;
+  font-size:15px;display:none;max-width:90%}
+/* misceláneo */
+.lista-limpia{list-style:none}
+.pend{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--salvia-niebla)}
+.pend:last-child{border-bottom:none}
+.check{position:relative;flex-shrink:0;width:20px;height:20px;border:1.5px solid var(--taupe);border-radius:4px;
+  cursor:pointer;margin-top:2px;display:flex;align-items:center;justify-content:center;background:var(--blanco)}
+/* La casilla se ve a 20 px pero se toca a 48 · §8 */
+.check::after{content:'';position:absolute;top:-14px;left:-14px;right:-14px;bottom:-14px}
+.check.on{background:var(--verde-bosque);border-color:var(--verde-bosque)}
+.check.redonda{border-radius:50%}
+.pend.hecha .txt{color:var(--texto-3);text-decoration:line-through}
+.fila-area{padding:24px 0;border-bottom:1px solid var(--salvia-niebla)}
+.fila-area:last-child{border-bottom:none}
+/* ── Temporizador ── */
+.reloj{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:72px;line-height:1;
+  letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--texto-oscuro)}
+@media(min-width:640px){.reloj{font-size:96px}}
+.aro{height:4px;background:rgba(250,245,239,.18);border-radius:2px;overflow:hidden}
+.aro>div{height:100%;background:var(--oro-claro);border-radius:2px;transition:width 1000ms linear}
+.rondas{display:flex;gap:6px;align-items:center}
+.rondas i{display:block;width:6px;height:6px;border-radius:50%;border:1px solid var(--salvia)}
+.rondas i.on{background:var(--oro-claro);border-color:var(--oro-claro)}
+/* ── Tareas del día ── */
+.tarea{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--salvia-niebla)}
+.tarea:last-child{border-bottom:none}
+.tarea.enfocada{background:var(--oro-palido);margin:0 -16px;padding-left:16px;padding-right:16px;border-radius:8px;border-bottom-color:transparent}
+.tarea .cuerpo{flex:1;min-width:0}
+.tarea.hecha .txt{color:var(--texto-3);text-decoration:line-through}
+.minutos{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--texto-3);font-size:13px}
+.alta-tarea{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.alta-tarea input[type=text]{flex:1;min-width:180px}
+.alta-tarea input[type=number]{width:96px;min-width:96px}
+/* §7: iconografía lineal, trazo 1.5, esquinas redondeadas. Nunca rellena. */
+svg.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div id="aviso" class="aviso-flotante"></div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-in">
+      <div class="marca">
+        <span class="mono"><span class="oro">C</span>S<span class="oro">B</span></span>
+        <span class="sub">Proyectos</span>
+      </div>
+      <button class="b b-fantasma b-mini" onclick="abrirAjustes()" aria-label="Ajustes">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+<div class="velo" id="velo"></div>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════
+   PROYECTOS · Como Sentirse Bien
+   Motor reutilizado de DEKA Trainer, piel según DESIGN.md v1.0
+   ─── Índice ───
+   1. Estado, migración y persistencia
+   2. Utilidades
+   3. Modelo de dominio (áreas, ciclos, objetivos, proyectos)
+   4. Pantallas: Hoy · Panel · Ciclo · Proyectos · Áreas · Revisión
+   5. Overlays: detalle, edición, planificación, ajustes
+   6. Temporizador: fases, aviso sonoro y pantalla despierta
+   7. Gráficas: evolución y rueda de áreas
+   8. Arranque
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─────────── 1. ESTADO, MIGRACIÓN Y PERSISTENCIA ─────────── */
+const CLAVE="csb-proyectos-v1";
+const VERSION=3;
+const SEMANAS_CICLO=12;
+
+/* Preguntas del diario. La de la mañana es una premeditatio malorum: no busca
+   agorerismo, busca que lo difícil no te pille de nuevas. La de la noche es un
+   examen, no un juicio: §12 prohíbe el tono de productividad agresiva. */
+const PREGUNTAS_MANANA=[
+  ["dificultades","¿Qué puede torcerse hoy?","Lo previsible: una consulta larga, una conversación incómoda, cansancio"],
+  ["control","De eso, ¿qué depende de ti?","Separa lo que puedes decidir de lo que solo puedes encajar"],
+  ["intencion","¿Cómo quieres haber actuado cuando mires atrás esta noche?","Una intención, no una lista de tareas"]
+];
+const PREGUNTAS_NOCHE=[
+  ["torcio","¿Qué se torció, de lo que esperabas y de lo que no?",""],
+  ["bien","¿Qué hiciste bien, aunque el resultado no acompañara?",""],
+  ["cambio","¿Qué harías distinto mañana?",""]
+];
+
+/* Ocho áreas de partida, adaptadas del esquema de evaluación por áreas vitales.
+   Son editables: nombre, tipo, indicador y acción semanal. */
+const AREAS_BASE=[
+  ["Salud física","personal"],
+  ["Energía mental","personal"],
+  ["Familia y relaciones","personal"],
+  ["Finanzas personales","personal"],
+  ["Negocio clínico","negocio"],
+  ["Negocio digital","negocio"],
+  ["Aprendizaje y sistemas","personal"],
+  ["Ocio y descanso","personal"]
+];
+
+const estadoInicial={
+  areas:[], ciclos:[], objetivos:[], proyectos:[], revisiones:[],
+  dias:[],                               // un registro por día con plan y diario
+  focos:{fecha:null, ids:[]},
+  temporizador:null,                     // ver §6 · sobrevive a recargas y suspensiones
+  ajustes:{ nombre:"Miguel", diasSinTocar:10, avisoFecha:7,
+            pomodoro:{trabajo:25, pausa:5, pausaLarga:15, rondas:4}, sonido:true },
+  _v:VERSION
+};
+
+var S=cargar();
+
+function cargar(){
+  try{
+    const r=localStorage.getItem(CLAVE);
+    if(r) return normalizar(migrar(JSON.parse(r)));
+  }catch(e){}
+  return normalizar(JSON.parse(JSON.stringify(estadoInicial)));
+}
+function guardar(){ try{localStorage.setItem(CLAVE,JSON.stringify(S));}catch(e){} }
+
+/* Rellena huecos sin pisar lo que ya existe. Sobrevive a datos parciales. */
+function normalizar(d){
+  const base=JSON.parse(JSON.stringify(estadoInicial));
+  const out=Object.assign(base,d||{});
+  ["areas","ciclos","objetivos","proyectos","revisiones","dias"].forEach(k=>{ if(!Array.isArray(out[k])) out[k]=[]; });
+  out.focos=Object.assign({fecha:null,ids:[]},out.focos||{});
+  out.ajustes=Object.assign({nombre:"Miguel",diasSinTocar:10,avisoFecha:7,sonido:true},out.ajustes||{});
+  out.ajustes.pomodoro=Object.assign({trabajo:25,pausa:5,pausaLarga:15,rondas:4},out.ajustes.pomodoro||{});
+  out.proyectos.forEach(p=>{ if(typeof p.minutos!=="number") p.minutos=0; });
+  out.dias.forEach(x=>{ if(!Array.isArray(x.tareas)) x.tareas=[]; });
+  out._v=VERSION;
+  return out;
+}
+
+/* v1 → v2. El área era un texto suelto en cada proyecto; ahora es una entidad
+   con puntuación propia. Se crean las áreas encontradas y se enlazan por id.
+   Nada se descarta: las revisiones antiguas pasan a ser revisiones semanales.
+
+   v2 → v3 no necesita tramo propio: solo añade claves nuevas (dias, temporizador,
+   ajustes.pomodoro, proyecto.minutos) y de eso ya se encarga normalizar(). */
+function migrar(d){
+  if(!d) return d;
+  if((d._v||1)>=2) return d;
+  const out={
+    areas:[], ciclos:[], objetivos:[], proyectos:[], revisiones:[],
+    focos:{fecha:null,ids:[]},
+    ajustes:Object.assign({nombre:"Miguel",diasSinTocar:10,avisoFecha:7},d.ajustes||{}),
+    _v:2
+  };
+  const porNombre={};
+  (d.proyectos||[]).forEach(p=>{
+    const nom=(p.area||"Sin área").trim();
+    if(!porNombre[nom]){ const a=crearArea(nom,adivinarTipo(nom)); out.areas.push(a); porNombre[nom]=a.id; }
+    const np=Object.assign({},p,{
+      areaId:porNombre[nom], objetivoId:null,
+      para:p.para||null, archivado:p.estado==="completado"
+    });
+    delete np.area;
+    out.proyectos.push(np);
+  });
+  (d.revisiones||[]).forEach(r=>{
+    out.revisiones.push({id:uid(),tipo:"semanal",fecha:r.fecha,cicloId:null,
+      funciono:r.notas||"", noFunciono:"", bloqueos:"", decisiones:"",
+      focos:r.foco||[], puntuacion:null});
+  });
+  return out;
+}
+function adivinarTipo(nombre){
+  return /consulta|clínic|clinic|web|contenido|tecnolog|negocio/i.test(nombre) ? "negocio" : "personal";
+}
+function crearArea(nombre,tipo){
+  return {id:uid(),nombre:nombre,tipo:tipo||"personal",actual:null,deseada:null,
+    indicador:"",motivo:"",accion:"",revisado:null,historia:[]};
+}
+
+/* ─────────── 2. UTILIDADES ─────────── */
+const $=id=>document.getElementById(id);
+function h(html){ const t=document.createElement("template"); t.innerHTML=html.trim();
+  return t.content.childNodes.length>1 ? t.content : t.content.firstChild; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function hoy(d){ d=d||new Date(); const p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+function desdeISO(s){ const a=String(s).split("-"); return new Date(+a[0],+a[1]-1,+a[2]); }
+function dias(a,b){ return Math.round((desdeISO(b)-desdeISO(a))/864e5); }
+function sumarDias(iso,n){ const d=desdeISO(iso); d.setDate(d.getDate()+n); return hoy(d); }
+function fechaCorta(iso){ if(!iso) return "—"; const M=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  const d=desdeISO(iso); return d.getDate()+" "+M[d.getMonth()]; }
+function fechaLarga(){
+  const D=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const M=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const d=new Date(); return D[d.getDay()]+" "+d.getDate()+" de "+M[d.getMonth()];
+}
+let temporizadorAviso=null;
+function avisar(txt){ const a=$("aviso"); a.textContent=txt; a.style.display="block";
+  clearTimeout(temporizadorAviso); temporizadorAviso=setTimeout(()=>a.style.display="none",2600); }
+function modal(html){ const v=$("velo"); v.innerHTML='<div class="modal">'+html+'</div>'; v.classList.add("abierto");
+  v.onclick=e=>{ if(e.target===v) cerrarModal(); }; }
+function cerrarModal(){ $("velo").classList.remove("abierto"); $("velo").innerHTML=""; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function val(id){ const e=$(id); return e?e.value.trim():""; }
+const filete='<div class="filete"><i></i><b></b><i></i></div>';
+const tick='<svg class="ico" style="width:14px;height:14px;stroke:var(--crema)" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+const aspa='<svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+
+/* Rampa de un solo tono para las escalas · §4.3: de salvia claro #E0E5D9 a
+   verde medio #334F46. Nunca rojo→verde. Devuelve fondo y color de texto. */
+function rampa(i,n){
+  const a=[224,229,217], b=[51,79,70], t=n<2?1:(i-1)/(n-1);
+  const c=a.map((v,k)=>Math.round(v+(b[k]-v)*t));
+  return {fondo:"rgb("+c.join(",")+")", texto: t>.55 ? "var(--texto-oscuro)" : "var(--texto)"};
+}
+
+/* ─────────── 3. MODELO DE DOMINIO ─────────── */
+/* área    = {id, nombre, tipo:"personal"|"negocio", actual, deseada,
+              indicador, motivo, accion, revisado, historia:[{fecha,actual}]}
+   ciclo   = {id, nombre, inicio, fin, estado:"activo"|"cerrado", cierre}
+   objetivo= {id, nombre, areaId, cicloId, estado:"activo"|"logrado"|"soltado",
+              porQue, resultado, metrica, prioridad, riesgos, creado}
+   proyecto= {id, nombre, areaId, objetivoId, estado:"activo"|"pausado"|"completado",
+              archivado, desc, modo:"hitos"|"manual", pct, para,
+              hitos:[{id,texto,hecho}], pendientes:[{id,texto,hecho,para}],
+              creado, tocado, historia:[{fecha,pct}]}
+   revisión= {id, tipo:"semanal"|"mensual"|"cierre", fecha, cicloId,
+              funciono, noFunciono, bloqueos, decisiones, focos:[], puntuacion} */
+
+function area(id){ return S.areas.find(a=>a.id===id)||null; }
+function objetivo(id){ return S.objetivos.find(o=>o.id===id)||null; }
+function proy(id){ return S.proyectos.find(p=>p.id===id)||null; }
+function nombreArea(id){ const a=area(id); return a?a.nombre:"Sin área"; }
+
+function progreso(p){
+  if(p.estado==="completado") return 100;
+  if(p.modo==="manual") return Math.max(0,Math.min(100,p.pct||0));
+  const t=(p.hitos||[]).length; if(!t) return 0;
+  return Math.round((p.hitos.filter(x=>x.hecho).length/t)*100);
+}
+function vivos(){ return S.proyectos.filter(p=>!p.archivado); }
+function activos(){ return vivos().filter(p=>p.estado==="activo"); }
+function pendientesAbiertas(p){ return (p.pendientes||[]).filter(x=>!x.hecho); }
+function todasPendientes(){
+  const out=[];
+  activos().forEach(p=>pendientesAbiertas(p).forEach(x=>out.push({p,x})));
+  return out.sort((a,b)=>{ const A=a.x.para||"9999", B=b.x.para||"9999"; return A<B?-1:A>B?1:0; });
+}
+function desatendidos(){
+  const lim=S.ajustes.diasSinTocar||10;
+  return activos().filter(p=>p.tocado&&dias(p.tocado,hoy())>=lim);
+}
+function registrarProgreso(p){
+  const pct=progreso(p), t=hoy();
+  p.historia=p.historia||[];
+  const ult=p.historia[p.historia.length-1];
+  if(!ult||ult.fecha!==t) p.historia.push({fecha:t,pct}); else ult.pct=pct;
+  p.tocado=t;
+}
+
+/* ---- ciclos ---- */
+function cicloActivo(){ return S.ciclos.find(c=>c.estado==="activo")||null; }
+function semanaCiclo(c){ if(!c) return 0; return Math.min(SEMANAS_CICLO+1,Math.floor(dias(c.inicio,hoy())/7)+1); }
+function pctTiempo(c){ if(!c) return 0;
+  const total=dias(c.inicio,c.fin)||1;
+  return Math.max(0,Math.min(100,Math.round(dias(c.inicio,hoy())/total*100))); }
+function objetivosDe(cicloId){ return S.objetivos.filter(o=>o.cicloId===cicloId); }
+function proyectosDe(objetivoId){ return vivos().filter(p=>p.objetivoId===objetivoId); }
+function progresoObjetivo(o){
+  if(o.estado==="logrado") return 100;
+  const ps=proyectosDe(o.id);
+  if(!ps.length) return null;
+  return Math.round(ps.reduce((a,p)=>a+progreso(p),0)/ps.length);
+}
+function avanceCiclo(c){
+  if(!c) return 0;
+  const os=objetivosDe(c.id).filter(o=>o.estado!=="soltado");
+  if(!os.length) return 0;
+  const vs=os.map(o=>progresoObjetivo(o)).map(v=>v==null?0:v);
+  return Math.round(vs.reduce((a,b)=>a+b,0)/vs.length);
+}
+
+/* ---- focos de la semana ---- */
+function focosVigentes(){
+  if(!S.focos.fecha||dias(S.focos.fecha,hoy())>7) return [];
+  return S.focos.ids.map(proy).filter(p=>p&&!p.archivado);
+}
+function esFoco(id){ return focosVigentes().some(p=>p.id===id); }
+
+/* ---- fechas objetivo ---- */
+function estadoFecha(iso){
+  if(!iso) return null;
+  const d=dias(hoy(),iso);
+  if(d<0) return {clase:"error",txt:"Venció el "+fechaCorta(iso)};
+  if(d===0) return {clase:"aviso",txt:"Es hoy"};
+  if(d<=(S.ajustes.avisoFecha||7)) return {clase:"aviso",txt:"En "+d+" día"+(d>1?"s":"")};
+  return {clase:"info",txt:fechaCorta(iso)};
+}
+
+/* ---- el día ---- */
+/* dia = {fecha, manana:{...}, tareas:[tarea], noche:{...}, punt, cerrado}
+   tarea = {id, texto, min, hecho, real, proyectoId, pendienteId, areaId} */
+function dia(fecha){ return S.dias.find(x=>x.fecha===fecha)||null; }
+function diaHoy(crear){
+  let d=dia(hoy());
+  if(!d&&crear){ d={fecha:hoy(),manana:null,tareas:[],noche:null,punt:null,cerrado:false}; S.dias.push(d); }
+  return d;
+}
+function tareasDe(d){ return d?(d.tareas||[]):[]; }
+function minPlan(d){ return tareasDe(d).reduce((a,t)=>a+(+t.min||0),0); }
+function minReal(d){ return tareasDe(d).reduce((a,t)=>a+(+t.real||0),0); }
+/* La puntuación objetiva pondera por minutos planificados: cerrar la tarea de dos
+   horas no vale lo mismo que cerrar la de diez minutos. Sin minutos, cuenta tareas. */
+function puntObjetiva(d){
+  const ts=tareasDe(d); if(!ts.length) return null;
+  const total=ts.reduce((a,t)=>a+(+t.min||0),0);
+  if(total>0){
+    const hecho=ts.filter(t=>t.hecho).reduce((a,t)=>a+(+t.min||0),0);
+    return Math.max(1,Math.round(hecho/total*10));
+  }
+  return Math.max(1,Math.round(ts.filter(t=>t.hecho).length/ts.length*10));
+}
+function hhmm(min){
+  min=Math.round(min||0);
+  const h=Math.floor(min/60), m=min%60;
+  return h? h+" h"+(m?" "+m+" min":"") : m+" min";
+}
+/* Sugerencias: nunca entran solas en el plan, solo se ofrecen. */
+function sugerencias(){
+  const d=diaHoy(false), puestas=new Set(tareasDe(d).map(t=>t.pendienteId||t.areaId).filter(Boolean));
+  const out=[];
+  todasPendientes().forEach(({p,x})=>{
+    if(!x.para||puestas.has(x.id)) return;
+    if(dias(x.para,hoy())>=0) out.push({clave:x.id,texto:x.texto,detalle:p.nombre,
+      tipo:"pendiente",proyectoId:p.id,pendienteId:x.id,tarde:dias(x.para,hoy())>0});
+  });
+  S.areas.forEach(a=>{
+    if(!a.accion||puestas.has(a.id)) return;
+    out.push({clave:a.id,texto:a.accion,detalle:a.nombre,tipo:"area",areaId:a.id,tarde:false});
+  });
+  return out;
+}
+/* La semana, para la revisión */
+function resumenSemana(){
+  const ds=S.dias.filter(x=>dias(x.fecha,hoy())>=0&&dias(x.fecha,hoy())<7);
+  const subj=ds.map(x=>x.punt).filter(v=>typeof v==="number");
+  const obj=ds.map(puntObjetiva).filter(v=>typeof v==="number");
+  const media=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length*10)/10:null;
+  return {dias:ds.length, subjetiva:media(subj), objetiva:media(obj),
+          minutos:ds.reduce((a,x)=>a+minReal(x),0)};
+}
+
+/* ---- áreas ---- */
+function areasPuntuadas(){ return S.areas.filter(a=>typeof a.actual==="number"); }
+function brecha(a){ return (typeof a.actual==="number"&&typeof a.deseada==="number") ? a.deseada-a.actual : null; }
+function areasPorBrecha(){
+  return S.areas.slice().sort((x,y)=>{ const a=brecha(x),b=brecha(y);
+    if(a==null&&b==null) return 0; if(a==null) return 1; if(b==null) return -1; return b-a; });
+}
+
+/* ─────────── 4. PANTALLAS ─────────── */
+const PESTANAS=[["hoy","Hoy"],["panel","Panel"],["ciclo","Ciclo"],["proyectos","Proyectos"],["areas","Áreas"],["revision","Revisión"]];
+const VISTAS={hoy:verHoy,panel:verPanel,ciclo:verCiclo,proyectos:verProyectos,areas:verAreas,revision:verRevision};
+var pestana="hoy";
+function ir(t){ pestana=t; pintar(); }
+function pintar(){
+  $("tabs").innerHTML=PESTANAS.map(([id,lb])=>
+    '<button class="'+(pestana===id?"on":"")+'" onclick="ir(\''+id+'\')">'+lb+'</button>').join("");
+  const app=$("app"); app.innerHTML="";
+  app.appendChild(VISTAS[pestana]());
+  if(pestana==="hoy") refrescarReloj();
+  window.scrollTo(0,0);
+}
+function cabecera(eyebrow,titulo,bajada){
+  return '<div><div class="eyebrow">'+esc(eyebrow)+'</div><h1 style="margin-top:8px">'+esc(titulo)+'</h1>'+filete+
+    (bajada?'<p class="body-l texto-max" style="color:var(--texto-2)">'+esc(bajada)+'</p>':'')+'</div>';
+}
+
+/* ══════ HOY ══════ */
+function verHoy(){
+  const el=h('<div class="seccion stack-24"></div>');
+  const d=diaHoy(false);
+  el.appendChild(h('<div><div class="eyebrow">Hoy · '+fechaLarga()+'</div>'+
+    '<h1 style="margin-top:8px">'+(d&&d.cerrado?"Día cerrado":"El día")+'</h1>'+filete+'</div>'));
+
+  el.appendChild(bloqueManana(d));
+  el.appendChild(bloqueTemporizador(d));
+  el.appendChild(bloquePlan(d));
+  const sug=sugerencias();
+  if(sug.length&&!(d&&d.cerrado)) el.appendChild(bloqueSugerencias(sug));
+  el.appendChild(bloqueNoche(d));
+
+  const previos=S.dias.filter(x=>x.fecha!==hoy()).slice(-14).reverse();
+  if(previos.length){
+    const hist=h('<div class="card texto-max"><div class="eyebrow">Días anteriores</div>'+
+      '<div id="histDias" style="margin-top:16px"></div></div>');
+    const cont=hist.querySelector("#histDias");
+    previos.forEach(x=>{
+      const o=puntObjetiva(x), ts=tareasDe(x);
+      const f=h('<div class="fila-area"><div class="row"><span style="font-weight:500">'+fechaCorta(x.fecha)+'</span>'+
+        '<span class="caption num">'+(typeof x.punt==="number"?x.punt:"—")+' · '+(o==null?"—":o)+'</span></div>'+
+        '<div class="caption">'+ts.filter(t=>t.hecho).length+' de '+ts.length+' tareas · '+hhmm(minReal(x))+' registrados</div></div>');
+      const b=h('<button class="b b-fantasma b-mini" style="margin-top:8px">Ver la entrada</button>');
+      b.onclick=()=>verDia(x.fecha); f.appendChild(b);
+      cont.appendChild(f);
+    });
+    el.appendChild(hist);
+  }
+  return el;
+}
+
+/* ---- la mañana ---- */
+function bloqueManana(d){
+  if(d&&d.manana){
+    const c=h('<div class="card tenue texto-max"><div class="row" style="align-items:flex-start">'+
+      '<div class="eyebrow">Antes de empezar</div></div><div class="stack-16" id="verManana" style="margin-top:16px"></div></div>');
+    const cont=c.querySelector("#verManana");
+    PREGUNTAS_MANANA.forEach(([k,q])=>{
+      if(!d.manana[k]) return;
+      cont.appendChild(h('<div><div class="caption">'+esc(q)+'</div>'+
+        '<p class="body-l" style="color:var(--texto-2)">'+esc(d.manana[k])+'</p></div>'));
+    });
+    const b=h('<button class="b b-fantasma b-mini" style="margin-top:16px">Editar</button>');
+    b.onclick=()=>{ d.manana=null; guardar(); pintar(); };
+    c.appendChild(b);
+    return c;
+  }
+  let html='<div class="card texto-max stack-16"><div class="eyebrow">Antes de empezar</div>'+
+    '<p class="body-l" style="color:var(--texto-2)">Dos minutos. No se trata de ponerse en lo peor, sino de que lo difícil no te pille de nuevas.</p>';
+  PREGUNTAS_MANANA.forEach(([k,q,ph])=>{
+    html+='<div><label class="lb" for="m_'+k+'">'+esc(q)+'</label>'+
+      '<textarea id="m_'+k+'" placeholder="'+esc(ph)+'"></textarea></div>';
+  });
+  html+='<button class="b b-primario" onclick="guardarManana()">Guardar la entrada</button></div>';
+  return h(html);
+}
+function guardarManana(){
+  const d=diaHoy(true), m={hechoEn:new Date().toISOString()};
+  let algo=false;
+  PREGUNTAS_MANANA.forEach(([k])=>{ m[k]=val("m_"+k); if(m[k]) algo=true; });
+  if(!algo){ avisar("Escribe algo antes de guardar"); return; }
+  d.manana=m; guardar(); pintar(); avisar("Entrada guardada");
+}
+
+/* ---- el plan ---- */
+function bloquePlan(d){
+  const ts=tareasDe(d);
+  const c=h('<div class="card"><div class="row" style="align-items:flex-start">'+
+    '<div class="eyebrow">El plan</div>'+
+    '<span class="caption num">'+hhmm(minPlan(d))+' previstos · '+hhmm(minReal(d))+' reales</span></div>'+
+    '<div id="listaTareas" style="margin-top:16px"></div></div>');
+  const cont=c.querySelector("#listaTareas");
+  if(!ts.length){
+    cont.appendChild(h('<p class="small">El día está en blanco. Añade tres o cuatro cosas, no quince: '+
+      'lo que quepa de verdad entre consultas.</p>'));
+  }
+  ts.forEach(t=>cont.appendChild(filaTarea(d,t)));
+
+  if(!(d&&d.cerrado)){
+    const alta=h('<div class="alta-tarea">'+
+      '<input type="text" id="nuevaTarea" placeholder="Cerrar el índice del módulo 3" aria-label="Tarea">'+
+      '<input type="number" id="nuevaTareaMin" min="5" max="480" step="5" placeholder="min" aria-label="Minutos">'+
+      '<button class="b b-secundario b-mini" onclick="addTarea()">Añadir</button></div>');
+    c.appendChild(alta);
+  }
+  return c;
+}
+function filaTarea(d,t){
+  const enf=S.temporizador&&S.temporizador.tareaId===t.id;
+  const f=h('<div class="tarea'+(t.hecho?" hecha":"")+(enf?" enfocada":"")+'">'+
+    '<div class="check'+(t.hecho?" on":"")+'" role="checkbox" aria-checked="'+(t.hecho?"true":"false")+'">'+(t.hecho?tick:'')+'</div>'+
+    '<div class="cuerpo"><div class="txt">'+esc(t.texto)+'</div>'+
+    '<div class="caption">'+(t.proyectoId&&proy(t.proyectoId)?esc(proy(t.proyectoId).nombre):
+      t.areaId&&area(t.areaId)?esc(area(t.areaId).nombre):"Suelta")+
+    (t.min?' · '+hhmm(t.min)+' previstos':'')+(t.real?' · '+hhmm(t.real)+' reales':'')+'</div></div></div>');
+  f.querySelector(".check").onclick=()=>marcarTarea(t.id);
+  if(!d.cerrado){
+    const foco=h('<button class="b b-fantasma b-mini" style="padding:0 10px">'+(enf?"Enfocada":"Enfocar")+'</button>');
+    foco.onclick=()=>enfocarTarea(t.id);
+    f.appendChild(foco);
+    const q=h('<button class="b-quitar" aria-label="Quitar del día">'+aspa+'</button>');
+    q.onclick=()=>{ d.tareas=d.tareas.filter(x=>x.id!==t.id);
+      if(S.temporizador&&S.temporizador.tareaId===t.id) S.temporizador.tareaId=null;
+      guardar(); pintar(); };
+    f.appendChild(q);
+  }
+  return f;
+}
+function addTarea(){
+  const texto=val("nuevaTarea"); if(!texto) return;
+  const min=+($("nuevaTareaMin").value)||0;
+  const d=diaHoy(true);
+  d.tareas.push({id:uid(),texto,min,hecho:false,real:0,proyectoId:null,pendienteId:null,areaId:null});
+  guardar(); pintar(); avisar("Añadida al día");
+}
+/* Marcar la tarea del día cierra también la pendiente del proyecto si venía de ahí:
+   una sola verdad, no dos listas que se contradicen. */
+function marcarTarea(id){
+  const d=diaHoy(true), t=d.tareas.find(x=>x.id===id); if(!t) return;
+  t.hecho=!t.hecho;
+  if(t.proyectoId&&t.pendienteId){
+    const p=proy(t.proyectoId);
+    const x=p&&(p.pendientes||[]).find(y=>y.id===t.pendienteId);
+    if(x){ x.hecho=t.hecho; registrarProgreso(p); }
+  }
+  guardar(); pintar(); avisar(t.hecho?"Hecho":"Reabierta");
+}
+function bloqueSugerencias(sug){
+  const c=h('<div class="card tenue"><div class="eyebrow">Podrías meter esto en el día</div>'+
+    '<div id="listaSug" style="margin-top:16px"></div></div>');
+  const cont=c.querySelector("#listaSug");
+  sug.slice(0,8).forEach(s=>{
+    const f=h('<div class="tarea"><div class="cuerpo"><div class="txt">'+esc(s.texto)+'</div>'+
+      '<div class="caption">'+esc(s.detalle)+(s.tarde?' · <span style="color:var(--error)">con la fecha pasada</span>':
+        s.tipo==="area"?' · acción semanal':'')+'</div></div></div>');
+    const b=h('<button class="b b-secundario b-mini">Añadir</button>');
+    b.onclick=()=>{
+      const d=diaHoy(true);
+      d.tareas.push({id:uid(),texto:s.texto,min:0,hecho:false,real:0,
+        proyectoId:s.proyectoId||null,pendienteId:s.pendienteId||null,areaId:s.areaId||null});
+      guardar(); pintar(); avisar("Añadida al día");
+    };
+    f.appendChild(b);
+    cont.appendChild(f);
+  });
+  return c;
+}
+
+/* ---- la noche ---- */
+function bloqueNoche(d){
+  const obj=puntObjetiva(d);
+  if(d&&d.cerrado){
+    const c=h('<div class="card texto-max stack-16"><div class="eyebrow">Al cerrar</div></div>');
+    PREGUNTAS_NOCHE.forEach(([k,q])=>{
+      if(!d.noche||!d.noche[k]) return;
+      c.appendChild(h('<div><div class="caption">'+esc(q)+'</div>'+
+        '<p class="body-l" style="color:var(--texto-2)">'+esc(d.noche[k])+'</p></div>'));
+    });
+    c.appendChild(bloquePuntuaciones(d.punt,obj));
+    const b=h('<button class="b b-fantasma b-mini">Reabrir el día</button>');
+    b.onclick=()=>{ d.cerrado=false; guardar(); pintar(); };
+    c.appendChild(b);
+    return c;
+  }
+  if(!d||!tareasDe(d).length&&!d.manana){
+    return h('<div class="card tenue texto-max"><p class="small">El cierre del día aparecerá cuando haya algo que cerrar.</p></div>');
+  }
+  let html='<div class="card texto-max stack-16"><div class="eyebrow">Al cerrar</div>'+
+    '<p class="body-l" style="color:var(--texto-2)">Un examen, no un juicio. Lo que salió mal es información, no una cuenta pendiente contigo.</p>';
+  PREGUNTAS_NOCHE.forEach(([k,q,ph])=>{
+    html+='<div><label class="lb" for="n_'+k+'">'+esc(q)+'</label>'+
+      '<textarea id="n_'+k+'" placeholder="'+esc(ph||"")+'"></textarea></div>';
+  });
+  html+='<div><label class="lb">¿Cómo ha ido el día?</label>'+
+    '<p class="caption">Tu impresión, antes de mirar los números</p><div class="escala" id="escalaDia"></div></div>'+
+    '<button class="b b-primario" onclick="cerrarDia()">Cerrar el día</button></div>';
+  const c=h(html);
+  const caja=c.querySelector("#escalaDia");
+  caja.setAttribute("role","radiogroup");
+  window._puntDia=d.punt||null;
+  for(let i=1;i<=10;i++){
+    const tono=rampa(i,10);
+    const b=h('<button class="'+(window._puntDia===i?"sel":"")+'" role="radio" aria-checked="'+(window._puntDia===i)+'"'+
+      ' style="background:'+tono.fondo+';color:'+tono.texto+'">'+i+'</button>');
+    b.onclick=()=>{ window._puntDia=(window._puntDia===i?null:i);
+      Array.from(caja.children).forEach((x,k)=>{ const on=window._puntDia===k+1;
+        x.classList.toggle("sel",on); x.setAttribute("aria-checked",on); }); };
+    caja.appendChild(b);
+  }
+  return c;
+}
+/* Enseñar las dos juntas es el punto: la distancia entre lo que sentiste y lo que
+   hiciste dice más que cualquiera de las dos por separado. */
+function bloquePuntuaciones(subj,obj){
+  const c=h('<div class="grid dos" style="margin-top:8px"></div>');
+  c.appendChild(h('<div><div class="caption">Cómo lo viviste</div>'+
+    '<div class="display num">'+(typeof subj==="number"?subj:"—")+'</div></div>'));
+  c.appendChild(h('<div><div class="caption">Lo que cerraste</div>'+
+    '<div class="display num">'+(obj==null?"—":obj)+'</div></div>'));
+  if(typeof subj==="number"&&obj!=null&&Math.abs(subj-obj)>=3){
+    c.appendChild(h('<p class="small" style="grid-column:1/-1">'+
+      (subj<obj? "Lo has vivido peor de lo que fue. Merece la pena releer esto dentro de una semana."
+               : "Lo has vivido mejor de lo que dicen las tareas. A veces el día bueno no es el productivo.")+'</p>'));
+  }
+  return c;
+}
+function cerrarDia(){
+  const d=diaHoy(true), n={hechoEn:new Date().toISOString()};
+  let algo=false;
+  PREGUNTAS_NOCHE.forEach(([k])=>{ n[k]=val("n_"+k); if(n[k]) algo=true; });
+  if(!algo&&!window._puntDia){ avisar("Escribe algo o puntúa el día"); return; }
+  d.noche=n; d.punt=window._puntDia||null; d.cerrado=true;
+  pararTemporizador(true);
+  guardar(); pintar(); avisar("Día cerrado");
+}
+function verDia(fecha){
+  const d=dia(fecha); if(!d) return;
+  const obj=puntObjetiva(d), ts=tareasDe(d);
+  let html='<div class="row" style="align-items:flex-start"><div><div class="eyebrow">Diario</div>'+
+    '<h2 style="margin-top:4px">'+fechaCorta(d.fecha)+'</h2></div>'+
+    '<button class="b b-fantasma b-mini" onclick="cerrarModal()">Cerrar</button></div>'+filete;
+  if(d.manana){
+    html+='<div class="eyebrow" style="margin-top:24px">Antes de empezar</div><div class="stack-16" style="margin-top:12px">';
+    PREGUNTAS_MANANA.forEach(([k,q])=>{ if(d.manana[k])
+      html+='<div><div class="caption">'+esc(q)+'</div><p>'+esc(d.manana[k])+'</p></div>'; });
+    html+='</div>';
+  }
+  if(ts.length){
+    html+='<div class="eyebrow" style="margin-top:32px">El plan</div><div style="margin-top:12px">'+
+      ts.map(t=>'<div class="row"><span'+(t.hecho?' style="color:var(--texto-3);text-decoration:line-through"':'')+'>'+
+        esc(t.texto)+'</span><span class="caption num">'+(t.real?hhmm(t.real):"—")+'</span></div>').join("")+'</div>';
+  }
+  if(d.noche){
+    html+='<div class="eyebrow" style="margin-top:32px">Al cerrar</div><div class="stack-16" style="margin-top:12px">';
+    PREGUNTAS_NOCHE.forEach(([k,q])=>{ if(d.noche[k])
+      html+='<div><div class="caption">'+esc(q)+'</div><p>'+esc(d.noche[k])+'</p></div>'; });
+    html+='</div>';
+  }
+  modal(html);
+  $("velo").querySelector(".modal").appendChild(bloquePuntuaciones(d.punt,obj));
+}
+
+/* ══════ PANEL ══════ */
+function verPanel(){
+  const el=h('<div class="seccion stack-24"></div>');
+  const c=cicloActivo(), act=activos(), pend=todasPendientes(), desat=desatendidos(), foc=focosVigentes();
+
+  el.appendChild(h('<div><div class="eyebrow">Panel · '+fechaLarga()+'</div>'+
+    '<h1 style="margin-top:8px">Buenos días, '+esc(S.ajustes.nombre)+'</h1>'+filete+'</div>'));
+
+  /* vacío */
+  if(!S.proyectos.length&&!S.objetivos.length){
+    el.appendChild(h('<div class="card texto-max stack-16"><h3>Empezamos por el ciclo</h3>'+
+      '<p class="small">El sistema trabaja en bloques de doce semanas con uno a tres objetivos, no con listas interminables. '+
+      'Abre un ciclo, elige pocos objetivos y cuelga de ellos los proyectos que de verdad estén vivos.</p>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="b b-primario" onclick="ir(\'ciclo\')">Abrir un ciclo</button>'+
+      '<button class="b b-secundario" onclick="cargarEjemplos()">Cargar ejemplos</button></div></div>'));
+    return el;
+  }
+
+  /* ciclo activo */
+  if(c){
+    const sem=semanaCiclo(c), av=avanceCiclo(c), t=pctTiempo(c);
+    const card=h('<div class="card oscura stack-16"></div>');
+    card.appendChild(h('<div class="row" style="align-items:flex-start">'+
+      '<div><div class="eyebrow">Ciclo en curso</div><h2 style="margin-top:4px">'+esc(c.nombre)+'</h2></div>'+
+      '<span class="etiqueta oro">Semana '+Math.min(sem,SEMANAS_CICLO)+' de '+SEMANAS_CICLO+'</span></div>'));
+    card.appendChild(h('<div><div class="row"><span class="caption">Avance de los objetivos</span>'+
+      '<span class="num small" style="color:var(--texto-oscuro)">'+av+' %</span></div>'+
+      '<div class="barra gruesa" style="margin-top:6px"><div style="width:'+av+'%"></div></div>'+
+      '<div class="row" style="margin-top:12px"><span class="caption">Tiempo transcurrido</span>'+
+      '<span class="num caption">'+t+' %</span></div>'+
+      '<div class="barra tiempo" style="margin-top:6px"><div style="width:'+t+'%"></div></div></div>'));
+    if(t-av>=20) card.appendChild(h('<p class="small">El tiempo va por delante del avance. En la revisión conviene recortar objetivos antes que apretar el ritmo.</p>'));
+    el.appendChild(card);
+  } else if(S.ciclos.length){
+    el.appendChild(h('<div class="card tenue texto-max"><div class="eyebrow">Sin ciclo</div>'+
+      '<p class="body-l" style="margin-top:8px">No hay ningún ciclo abierto. Los proyectos siguen ahí, pero sin un bloque de doce semanas no hay foco que los ordene.</p>'+
+      '<button class="b b-secundario b-mini" style="margin-top:12px" onclick="ir(\'ciclo\')">Abrir un ciclo</button></div>'));
+  }
+
+  /* focos de la semana */
+  if(foc.length){
+    el.appendChild(h('<div><div class="eyebrow">Focos de esta semana</div></div>'));
+    const g=h('<div class="grid dos"></div>');
+    foc.forEach(p=>g.appendChild(tarjetaProyecto(p)));
+    el.appendChild(g);
+  }
+
+  /* resumen */
+  const vencidas=pend.filter(o=>o.x.para&&dias(o.x.para,hoy())>0).length;
+  const res=h('<div class="grid dos"></div>');
+  const media=act.length?Math.round(act.reduce((a,p)=>a+progreso(p),0)/act.length):0;
+  res.appendChild(h('<div class="card"><div class="eyebrow">En marcha</div>'+
+    '<div class="display num" style="margin:8px 0">'+act.length+'</div>'+
+    '<div class="barra gruesa"><div style="width:'+media+'%"></div></div>'+
+    '<p class="caption" style="margin-top:8px">Avance medio del '+media+' %</p></div>'));
+  res.appendChild(h('<div class="card"><div class="eyebrow">Pendientes abiertas</div>'+
+    '<div class="display num" style="margin:8px 0">'+pend.length+'</div>'+
+    '<p class="caption">'+(vencidas?vencidas+' con la fecha pasada':'ninguna con la fecha pasada')+'</p></div>'));
+  el.appendChild(res);
+
+  /* proyectos con fecha próxima */
+  const proximos=vivos().filter(p=>p.estado==="activo"&&p.para&&dias(hoy(),p.para)<=(S.ajustes.avisoFecha||7))
+    .sort((a,b)=>a.para<b.para?-1:1);
+  if(proximos.length){
+    const c2=h('<div class="card texto-max"><div class="eyebrow">Fechas encima</div>'+
+      '<div class="stack-8" id="listaFechas" style="margin-top:16px"></div></div>');
+    const cont=c2.querySelector("#listaFechas");
+    proximos.forEach(p=>{ const f=estadoFecha(p.para);
+      cont.appendChild(h('<div class="row"><span>'+esc(p.nombre)+'</span>'+
+        '<span class="etiqueta '+f.clase+'">'+esc(f.txt)+'</span></div>')); });
+    el.appendChild(c2);
+  }
+
+  /* desatendidos */
+  if(desat.length){
+    el.appendChild(h('<div class="card tenue texto-max"><div class="eyebrow" style="color:var(--aviso)">Sin tocar</div>'+
+      '<p class="body-l" style="margin-top:8px">'+desat.map(p=>'«'+esc(p.nombre)+'»').join(", ")+
+      (desat.length===1?' lleva ':' llevan ')+'más de '+(S.ajustes.diasSinTocar)+' días sin movimiento.</p>'+
+      '<p class="small" style="margin-top:8px">No siempre es un problema — a veces la respuesta correcta es pausarlo y quitarlo de la cabeza.</p></div>'));
+  }
+
+  /* proyectos activos que no son foco */
+  const resto=act.filter(p=>!esFoco(p.id));
+  if(resto.length){
+    el.appendChild(h('<div style="margin-top:8px"><div class="eyebrow">'+(foc.length?"El resto":"Proyectos activos")+'</div></div>'));
+    const lista=h('<div class="grid dos"></div>');
+    resto.forEach(p=>lista.appendChild(tarjetaProyecto(p)));
+    el.appendChild(lista);
+  }
+
+  /* lo siguiente */
+  if(pend.length){
+    const c3=h('<div class="card texto-max"><div class="eyebrow">Lo siguiente</div>'+
+      '<div id="listaPend" style="margin-top:16px"></div></div>');
+    const cont=c3.querySelector("#listaPend");
+    pend.slice(0,6).forEach(({p,x})=>{
+      const tarde=x.para&&dias(x.para,hoy())>0;
+      const fila=h('<div class="pend"><div class="check" role="checkbox" aria-checked="false" tabindex="0"></div>'+
+        '<div style="flex:1"><div class="txt">'+esc(x.texto)+'</div>'+
+        '<div class="caption">'+esc(p.nombre)+(x.para?' · <span style="color:'+(tarde?"var(--error)":"var(--texto-3)")+'">'+fechaCorta(x.para)+'</span>':'')+'</div></div></div>');
+      fila.querySelector(".check").onclick=()=>{ x.hecho=true; registrarProgreso(p); guardar(); pintar(); avisar("Hecho"); };
+      cont.appendChild(fila);
+    });
+    el.appendChild(c3);
+  }
+
+  el.appendChild(h('<button class="b b-primario b-full" onclick="planificarSemana()">Planificar la semana</button>'));
+  return el;
+}
+
+function tarjetaProyecto(p){
+  const pct=progreso(p), pend=pendientesAbiertas(p), o=objetivo(p.objetivoId);
+  const c=h('<div class="card clic'+(esFoco(p.id)?" destacada":"")+(p.estado==="completado"?" tenue":"")+'"></div>');
+  c.onclick=()=>verDetalle(p.id);
+  c.appendChild(h('<div class="row" style="align-items:flex-start">'+
+    '<div><div class="caption">'+esc(nombreArea(p.areaId))+(o?' · '+esc(o.nombre):'')+'</div>'+
+    '<h3 style="margin-top:2px">'+esc(p.nombre)+'</h3></div>'+
+    '<span class="etiqueta '+(p.estado==="activo"?"":p.estado==="completado"?"exito":"aviso")+'">'+
+    (p.estado==="activo"?"Activo":p.estado==="completado"?"Completado":"En pausa")+'</span></div>'));
+  c.appendChild(h('<div style="margin:16px 0 8px" class="row"><span class="caption">'+
+    (p.modo==="hitos"?((p.hitos||[]).filter(x=>x.hecho).length+" de "+(p.hitos||[]).length+" hitos"):"Avance estimado")+
+    '</span><span class="num" style="font-size:15px;font-weight:500">'+pct+' %</span></div>'));
+  c.appendChild(h('<div class="barra"><div style="width:'+pct+'%"></div></div>'));
+  const f=estadoFecha(p.para);
+  c.appendChild(h('<p class="caption" style="margin-top:12px">'+
+    (pend.length? pend.length+' pendiente'+(pend.length>1?'s':'')+' · ' : 'Sin pendientes · ')+
+    'Último movimiento: '+fechaCorta(p.tocado)+
+    (f?' · <span style="color:'+(f.clase==="error"?"var(--error)":f.clase==="aviso"?"var(--aviso)":"var(--texto-3)")+'">'+esc(f.txt)+'</span>':'')+
+    '</p>'));
+  return c;
+}
+
+/* ══════ CICLO ══════ */
+function verCiclo(){
+  const el=h('<div class="seccion stack-24"></div>');
+  const c=cicloActivo();
+  el.appendChild(h(cabecera("Doce semanas","Ciclo",
+    "La unidad de avance no es el año, es el bloque de doce semanas. Uno a tres objetivos, ni uno más: lo que sobra se apunta y espera al siguiente ciclo.")));
+
+  if(!c){
+    const f=h('<div class="card texto-max stack-16"><div class="eyebrow">Nuevo ciclo</div>'+
+      '<div><label class="lb" for="cNombre">Nombre</label>'+
+      '<input type="text" id="cNombre" placeholder="Ciclo 1 · otoño" value="Ciclo '+(S.ciclos.length+1)+'"></div>'+
+      '<div><label class="lb" for="cInicio">Empieza el</label><input type="date" id="cInicio" value="'+hoy()+'"></div>'+
+      '<p class="caption">Durará doce semanas. La fecha de cierre se calcula sola.</p>'+
+      '<button class="b b-primario" onclick="crearCiclo()">Abrir el ciclo</button></div>');
+    el.appendChild(f);
+  } else {
+    const sem=semanaCiclo(c), av=avanceCiclo(c), t=pctTiempo(c), restan=Math.max(0,dias(hoy(),c.fin));
+    const cab=h('<div class="card stack-16"></div>');
+    cab.appendChild(h('<div class="row" style="align-items:flex-start">'+
+      '<div><div class="eyebrow">En curso</div><h2 style="margin-top:4px">'+esc(c.nombre)+'</h2>'+
+      '<p class="caption">'+fechaCorta(c.inicio)+' – '+fechaCorta(c.fin)+' · quedan '+restan+' días</p></div>'+
+      '<span class="etiqueta oro">Semana '+Math.min(sem,SEMANAS_CICLO)+'/'+SEMANAS_CICLO+'</span></div>'));
+    cab.appendChild(h('<div><div class="row"><span class="caption">Avance</span><span class="num small">'+av+' %</span></div>'+
+      '<div class="barra gruesa" style="margin-top:6px"><div style="width:'+av+'%"></div></div>'+
+      '<div class="row" style="margin-top:12px"><span class="caption">Tiempo</span><span class="num caption">'+t+' %</span></div>'+
+      '<div class="barra tiempo" style="margin-top:6px"><div style="width:'+t+'%"></div></div></div>'));
+    el.appendChild(cab);
+
+    const obs=objetivosDe(c.id);
+    el.appendChild(h('<div style="margin-top:8px"><div class="eyebrow">Objetivos ('+obs.length+' de 3)</div></div>'));
+    if(!obs.length){
+      el.appendChild(h('<div class="card tenue texto-max"><p class="body-l">Todavía no hay objetivos. Un objetivo no es una tarea: '+
+        'es un resultado que sabrás reconocer cuando llegue, con una métrica que lo confirme.</p></div>'));
+    }
+    obs.forEach(o=>el.appendChild(tarjetaObjetivo(o)));
+
+    if(obs.length>=3) el.appendChild(h('<p class="caption texto-max">Tres objetivos es el techo del sistema. Si aparece un cuarto, algo tiene que salir.</p>'));
+    el.appendChild(h('<button class="b b-primario b-full" onclick="editarObjetivo()">Crear objetivo</button>'));
+    el.appendChild(h('<button class="b b-secundario b-full" onclick="cerrarCiclo()">Cerrar el ciclo</button>'));
+  }
+
+  const cerrados=S.ciclos.filter(x=>x.estado==="cerrado");
+  if(cerrados.length){
+    const hist=h('<div class="card texto-max"><div class="eyebrow">Ciclos anteriores</div>'+
+      '<div class="stack-16" id="histCiclos" style="margin-top:16px"></div></div>');
+    const cont=hist.querySelector("#histCiclos");
+    cerrados.slice().reverse().forEach(x=>{
+      const os=objetivosDe(x.id), log=os.filter(o=>o.estado==="logrado").length;
+      cont.appendChild(h('<div><div class="row"><span style="font-weight:500">'+esc(x.nombre)+'</span>'+
+        '<span class="caption num">'+log+' de '+os.length+' logrados</span></div>'+
+        '<div class="caption">'+fechaCorta(x.inicio)+' – '+fechaCorta(x.fin)+'</div>'+
+        ((x.cierre&&x.cierre.aprendizajes)?'<p class="small" style="margin-top:6px;color:var(--texto-2)">'+esc(x.cierre.aprendizajes)+'</p>':'')+'</div>'));
+    });
+    el.appendChild(hist);
+  }
+  return el;
+}
+function tarjetaObjetivo(o){
+  const pct=progresoObjetivo(o), ps=proyectosDe(o.id);
+  const c=h('<div class="card clic'+(o.estado!=="activo"?" tenue":"")+'"></div>');
+  c.onclick=()=>verObjetivo(o.id);
+  c.appendChild(h('<div class="row" style="align-items:flex-start">'+
+    '<div><div class="caption">'+esc(nombreArea(o.areaId))+'</div>'+
+    '<h3 style="margin-top:2px">'+esc(o.nombre)+'</h3></div>'+
+    '<span class="etiqueta '+(o.estado==="logrado"?"exito":o.estado==="soltado"?"":"oro")+'">'+
+    (o.estado==="logrado"?"Logrado":o.estado==="soltado"?"Soltado":(o.prioridad||"media"))+'</span></div>'));
+  if(o.resultado) c.appendChild(h('<p class="small" style="margin-top:8px">'+esc(o.resultado)+'</p>'));
+  c.appendChild(h('<div style="margin:16px 0 8px" class="row"><span class="caption">'+
+    (ps.length? ps.length+' proyecto'+(ps.length>1?'s':'') : 'Sin proyectos vinculados')+
+    '</span><span class="num" style="font-size:15px;font-weight:500">'+(pct==null?"—":pct+" %")+'</span></div>'));
+  c.appendChild(h('<div class="barra"><div style="width:'+(pct||0)+'%"></div></div>'));
+  if(o.metrica) c.appendChild(h('<p class="caption" style="margin-top:12px">Métrica: '+esc(o.metrica)+'</p>'));
+  return c;
+}
+function crearCiclo(){
+  const nombre=val("cNombre")||"Ciclo "+(S.ciclos.length+1);
+  const inicio=$("cInicio").value||hoy();
+  S.ciclos.push({id:uid(),nombre,inicio,fin:sumarDias(inicio,SEMANAS_CICLO*7-1),estado:"activo",cierre:null});
+  guardar(); pintar(); avisar("Ciclo abierto");
+}
+function cerrarCiclo(){
+  const c=cicloActivo(); if(!c) return;
+  const os=objetivosDe(c.id);
+  let html='<h2>Cerrar el ciclo</h2>'+filete+
+    '<p class="body-l" style="color:var(--texto-2)">Antes de cerrar, di qué pasó con cada objetivo. Soltar uno no es fracasar: es información sobre cuánto cabe de verdad en doce semanas.</p>'+
+    '<div class="stack-16" style="margin-top:24px">';
+  os.forEach(o=>{
+    html+='<div><label class="lb">'+esc(o.nombre)+'</label><select id="fin_'+o.id+'">'+
+      '<option value="logrado">Logrado</option><option value="activo" selected>Pasa al siguiente ciclo</option>'+
+      '<option value="soltado">Soltado</option></select></div>';
+  });
+  html+='<div><label class="lb" for="cApre">Qué te llevas de estas doce semanas</label>'+
+    '<textarea id="cApre" placeholder="Lo que funcionó, lo que sobró y qué harías distinto"></textarea></div></div>'+
+    '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="cerrarModal()">Cancelar</button>'+
+    '<button class="b b-primario" onclick="confirmarCierre(\''+c.id+'\')">Cerrar el ciclo</button></div>';
+  modal(html);
+}
+function confirmarCierre(id){
+  const c=S.ciclos.find(x=>x.id===id); if(!c) return;
+  objetivosDe(c.id).forEach(o=>{
+    const s=$("fin_"+o.id); if(!s) return;
+    if(s.value==="activo") o.cicloId=null; else o.estado=s.value;
+  });
+  c.estado="cerrado"; c.cierre={fecha:hoy(),aprendizajes:val("cApre")};
+  S.revisiones.push({id:uid(),tipo:"cierre",fecha:hoy(),cicloId:c.id,
+    funciono:val("cApre"),noFunciono:"",bloqueos:"",decisiones:"",focos:[],puntuacion:null});
+  guardar(); cerrarModal(); pintar(); avisar("Ciclo cerrado");
+}
+
+/* ══════ PROYECTOS ══════ */
+var filtroArea="todas", verArchivados=false;
+function verProyectos(){
+  const el=h('<div class="seccion stack-24"></div>');
+  el.appendChild(h(cabecera("Todos","Proyectos",
+    "Un proyecto es una iniciativa concreta que empuja un objetivo. Si no empuja ninguno, o es mantenimiento o sobra.")));
+
+  const ids=[...new Set(S.proyectos.map(p=>p.areaId).filter(Boolean))];
+  const chips=h('<div class="chips" role="group" aria-label="Filtrar por área"></div>');
+  [["todas","Todas"]].concat(ids.map(i=>[i,nombreArea(i)])).forEach(([id,lb])=>{
+    const b=h('<button class="'+(filtroArea===id?"sel":"")+'" aria-pressed="'+(filtroArea===id)+'">'+esc(lb)+'</button>');
+    b.onclick=()=>{filtroArea=id;pintar();}; chips.appendChild(b);
+  });
+  el.appendChild(chips);
+
+  const orden={activo:0,pausado:1,completado:2};
+  const ps=S.proyectos
+    .filter(p=>verArchivados?p.archivado:!p.archivado)
+    .filter(p=>filtroArea==="todas"||p.areaId===filtroArea)
+    .sort((a,b)=>orden[a.estado]-orden[b.estado]);
+  const lista=h('<div class="grid dos"></div>');
+  if(!ps.length) lista.appendChild(h('<p class="small">'+(verArchivados?"No hay nada archivado.":"No hay proyectos aquí.")+'</p>'));
+  ps.forEach(p=>lista.appendChild(tarjetaProyecto(p)));
+  el.appendChild(lista);
+
+  const nArch=S.proyectos.filter(p=>p.archivado).length;
+  if(nArch||verArchivados){
+    const b=h('<button class="b b-fantasma b-mini">'+(verArchivados?"Ver los activos":"Ver archivados ("+nArch+")")+'</button>');
+    b.onclick=()=>{verArchivados=!verArchivados;pintar();};
+    el.appendChild(b);
+  }
+  if(!verArchivados) el.appendChild(h('<button class="b b-primario b-full" onclick="editarProyecto()">Crear proyecto</button>'));
+  return el;
+}
+
+/* ══════ ÁREAS ══════ */
+function verAreas(){
+  const el=h('<div class="seccion stack-24"></div>');
+  el.appendChild(h(cabecera("Equilibrio","Áreas",
+    "Una nota por área, revisada de vez en cuando. No sirve para juzgarte: sirve para ver dónde está la distancia más grande entre lo que hay y lo que quieres.")));
+
+  if(!S.areas.length){
+    el.appendChild(h('<div class="card texto-max stack-16"><h3>Sin áreas todavía</h3>'+
+      '<p class="small">Ocho áreas de partida, adaptadas de los modelos de evaluación por dominios vitales. Puedes renombrarlas, quitarlas o añadir las tuyas.</p>'+
+      '<button class="b b-primario" onclick="sembrarAreas()">Crear las áreas</button></div>'));
+    return el;
+  }
+
+  const punt=areasPuntuadas();
+  if(punt.length>=3){
+    el.appendChild(h('<div class="card"><div class="eyebrow">La rueda</div>'+
+      '<div id="rueda" style="margin-top:16px"></div>'+
+      '<p class="caption" style="margin-top:8px">Relleno: dónde estás. Línea punteada: dónde quieres estar.</p></div>'));
+    setTimeout(()=>dibujarRueda(),0);
+  } else {
+    el.appendChild(h('<div class="card tenue texto-max"><p class="body-l">Puntúa al menos tres áreas y aparecerá la rueda.</p></div>'));
+  }
+
+  const lista=h('<div class="card"><div class="eyebrow">Por distancia hasta donde quieres estar</div>'+
+    '<div id="listaAreas" style="margin-top:8px"></div></div>');
+  const cont=lista.querySelector("#listaAreas");
+  areasPorBrecha().forEach(a=>{
+    const g=brecha(a);
+    const fila=h('<div class="fila-area"></div>');
+    fila.appendChild(h('<div class="row" style="align-items:flex-start">'+
+      '<div><h4>'+esc(a.nombre)+'</h4><div class="caption">'+(a.tipo==="negocio"?"Negocio":"Personal")+
+      (a.revisado?' · revisada el '+fechaCorta(a.revisado):' · sin revisar')+'</div></div>'+
+      '<span class="etiqueta '+(g==null?"":g>=3?"aviso":g<=1?"exito":"")+'">'+
+      (typeof a.actual==="number"?a.actual+(typeof a.deseada==="number"?" → "+a.deseada:""):"sin nota")+'</span></div>'));
+    if(typeof a.actual==="number"){
+      fila.appendChild(h('<div class="barra" style="margin-top:10px"><div style="width:'+(a.actual*10)+'%"></div></div>'));
+    }
+    if(a.indicador) fila.appendChild(h('<p class="caption" style="margin-top:8px">Indicador: '+esc(a.indicador)+'</p>'));
+    if(a.accion) fila.appendChild(h('<p class="small" style="margin-top:4px">Cada semana: '+esc(a.accion)+'</p>'));
+    const n=vivos().filter(p=>p.areaId===a.id).length;
+    const pie=h('<div class="row" style="margin-top:10px"><span class="caption">'+
+      (n? n+' proyecto'+(n>1?'s':'')+' vivo'+(n>1?'s':'') : 'Ningún proyecto vivo')+'</span></div>');
+    const b=h('<button class="b b-fantasma b-mini">Editar</button>');
+    b.onclick=()=>editarArea(a.id); pie.appendChild(b);
+    fila.appendChild(pie);
+    cont.appendChild(fila);
+  });
+  el.appendChild(lista);
+
+  el.appendChild(h('<button class="b b-primario b-full" onclick="puntuarAreas()">Puntuar las áreas</button>'));
+  el.appendChild(h('<button class="b b-secundario b-full" onclick="editarArea()">Añadir área</button>'));
+  return el;
+}
+function sembrarAreas(){
+  AREAS_BASE.forEach(([n,t])=>S.areas.push(crearArea(n,t)));
+  guardar(); pintar(); avisar("Áreas creadas");
+}
+
+/* ══════ REVISIÓN ══════ */
+var tipoRev="semanal";
+function verRevision(){
+  const el=h('<div class="seccion stack-24"></div>');
+  el.appendChild(h(cabecera("Ritmo","Revisión",
+    "Un rato corto, siempre el mismo día. La revisión es lo que convierte el sistema en algo vivo: sin ella solo son listas.")));
+
+  const sel=h('<div class="segmentado"></div>');
+  [["semanal","Semanal"],["mensual","Mensual"],["cierre","Cierre de ciclo"]].forEach(([id,lb])=>{
+    const b=h('<button class="'+(tipoRev===id?"sel":"")+'">'+lb+'</button>');
+    b.onclick=()=>{tipoRev=id;pintar();}; sel.appendChild(b);
+  });
+  el.appendChild(sel);
+
+  const c=cicloActivo();
+  if(tipoRev==="semanal"){
+    const act=activos(), sem=resumenSemana();
+    if(sem.dias){
+      const r=h('<div class="card texto-max"><div class="eyebrow">Los últimos siete días</div>'+
+        '<div class="grid dos" style="margin-top:16px">'+
+        '<div><div class="caption">Cómo los viviste</div><div class="display num">'+(sem.subjetiva==null?"—":sem.subjetiva)+'</div></div>'+
+        '<div><div class="caption">Lo que cerraste</div><div class="display num">'+(sem.objetiva==null?"—":sem.objetiva)+'</div></div>'+
+        '</div><p class="caption" style="margin-top:12px">'+sem.dias+' día'+(sem.dias>1?"s":"")+
+        ' con registro · '+hhmm(sem.minutos)+' de trabajo cronometrado</p></div>');
+      el.appendChild(r);
+    }
+    const est=h('<div class="card texto-max stack-16"><div class="eyebrow">Qué se ha movido</div></div>');
+    act.forEach(p=>{
+      const pct=progreso(p), prev=(p.historia||[]).filter(x=>dias(x.fecha,hoy())>=7).pop();
+      const delta=prev?pct-prev.pct:null;
+      est.appendChild(h('<div><div class="row"><span style="font-weight:500">'+esc(p.nombre)+'</span>'+
+        '<span class="num caption">'+pct+' %'+(delta!==null?' <span style="color:'+(delta>0?"var(--exito)":"var(--texto-3)")+'">'+(delta>0?"+"+delta:"sin cambios")+'</span>':'')+'</span></div>'+
+        '<div class="barra" style="margin-top:6px"><div style="width:'+pct+'%"></div></div></div>'));
+    });
+    if(!act.length) est.appendChild(h('<p class="small">No hay proyectos activos.</p>'));
+    el.appendChild(est);
+
+    el.appendChild(h('<div class="card texto-max stack-16"><div class="eyebrow">Nueva revisión semanal</div>'+
+      '<div><label class="lb" for="rFunciono">Qué funcionó</label><textarea id="rFunciono" placeholder="Lo que avanzó y por qué"></textarea></div>'+
+      '<div><label class="lb" for="rNo">Qué no funcionó</label><textarea id="rNo" placeholder="Lo que se atascó, sin buscar culpable"></textarea></div>'+
+      '<div><label class="lb" for="rBloq">Qué bloqueará la semana que viene</label><textarea id="rBloq" placeholder="Dependencias, viajes, cosas fuera de tu control"></textarea></div>'+
+      '<div><label class="lb" for="rPunt">Puntuación de la semana (1-10)</label><input type="number" id="rPunt" min="1" max="10" placeholder="7"></div>'+
+      '</div>'));
+  } else if(tipoRev==="mensual"){
+    el.appendChild(h('<div class="card texto-max stack-16"><div class="eyebrow">Nueva revisión mensual</div>'+
+      '<p class="small">La mensual mira las áreas, no las tareas. Vuelve a puntuar lo que haya cambiado y decide si alguna merece un objetivo el próximo ciclo.</p>'+
+      '<div><label class="lb" for="rFunciono">Cómo van las áreas</label><textarea id="rFunciono" placeholder="Qué área ha mejorado, cuál se ha quedado atrás"></textarea></div>'+
+      '<div><label class="lb" for="rDec">Decisiones</label><textarea id="rDec" placeholder="Qué cambias a partir de ahora"></textarea></div>'+
+      '<button class="b b-secundario" onclick="puntuarAreas()">Puntuar las áreas</button></div>'));
+  } else {
+    el.appendChild(h('<div class="card texto-max stack-16"><div class="eyebrow">Cierre de ciclo</div>'+
+      (c?'<p class="small">El ciclo «'+esc(c.nombre)+'» sigue abierto. El cierre formal, con el destino de cada objetivo, se hace desde la pestaña Ciclo.</p>'+
+          '<button class="b b-secundario" onclick="ir(\'ciclo\')">Ir al ciclo</button>'
+        :'<p class="small">No hay ningún ciclo abierto ahora mismo.</p>')+
+      '<div><label class="lb" for="rFunciono">Notas del cierre</label><textarea id="rFunciono" placeholder="Resultados, aprendizajes y qué llevas al siguiente ciclo"></textarea></div></div>'));
+  }
+
+  el.appendChild(h('<button class="b b-primario b-full" onclick="guardarRevision()">Guardar revisión</button>'));
+  if(tipoRev==="semanal") el.appendChild(h('<button class="b b-secundario b-full" onclick="planificarSemana()">Elegir los focos</button>'));
+
+  const hs=S.revisiones.filter(r=>r.tipo===tipoRev);
+  if(hs.length){
+    const hist=h('<div class="card texto-max"><div class="eyebrow">Anteriores</div>'+
+      '<div class="stack-16" id="histRev" style="margin-top:16px"></div></div>');
+    const cont=hist.querySelector("#histRev");
+    hs.slice().reverse().slice(0,8).forEach(r=>{
+      let t='<div><div class="row"><span class="caption">'+fechaCorta(r.fecha)+'</span>'+
+        (r.puntuacion?'<span class="caption num">'+r.puntuacion+'/10</span>':'')+'</div>';
+      if(r.funciono) t+='<p class="small" style="color:var(--texto-2)">'+esc(r.funciono)+'</p>';
+      if(r.noFunciono) t+='<p class="caption">No funcionó: '+esc(r.noFunciono)+'</p>';
+      if(r.decisiones) t+='<p class="caption">Decisiones: '+esc(r.decisiones)+'</p>';
+      cont.appendChild(h(t+'</div>'));
+    });
+    el.appendChild(hist);
+  }
+  return el;
+}
+function guardarRevision(){
+  const f=val("rFunciono");
+  if(!f){ avisar("Escribe algo antes de guardar"); return; }
+  const c=cicloActivo();
+  S.revisiones.push({id:uid(),tipo:tipoRev,fecha:hoy(),cicloId:c?c.id:null,
+    funciono:f, noFunciono:val("rNo"), bloqueos:val("rBloq"), decisiones:val("rDec"),
+    focos:S.focos.ids.slice(), puntuacion:$("rPunt")?(+$("rPunt").value||null):null});
+  guardar(); pintar(); avisar("Revisión guardada");
+}
+
+/* ─────────── 5. OVERLAYS ─────────── */
+
+/* ---- planificación semanal: elegir 1-3 focos ---- */
+function planificarSemana(){
+  const act=activos();
+  if(!act.length){ avisar("No hay proyectos activos que elegir"); return; }
+  let html='<h2>Focos de la semana</h2>'+filete+
+    '<p class="body-l" style="color:var(--texto-2)">Elige como mucho tres. Lo demás sigue existiendo, solo que esta semana no manda.</p>'+
+    '<div id="listaFocos" style="margin-top:24px"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="cerrarModal()">Cancelar</button>'+
+    '<button class="b b-primario" onclick="guardarFocos()">Guardar</button></div>';
+  modal(html);
+  window._focos=focosVigentes().map(p=>p.id);
+  const cont=$("listaFocos");
+  act.forEach(p=>{
+    const fila=h('<div class="pend"><div class="check redonda"></div>'+
+      '<div style="flex:1"><div class="txt">'+esc(p.nombre)+'</div>'+
+      '<div class="caption">'+esc(nombreArea(p.areaId))+' · '+progreso(p)+' %</div></div></div>');
+    const ch=fila.querySelector(".check");
+    ch.setAttribute("data-id",p.id);
+    ch.setAttribute("role","checkbox");
+    ch.onclick=()=>{
+      const i=window._focos.indexOf(p.id);
+      if(i>=0) window._focos.splice(i,1);
+      else if(window._focos.length>=3){ avisar("Tres es el máximo — si entra uno, sale otro"); return; }
+      else window._focos.push(p.id);
+      marcarFocos();
+    };
+    cont.appendChild(fila);
+  });
+  marcarFocos();
+}
+/* Repinta solo las marcas, sin reconstruir el modal ni perder lo elegido. */
+function marcarFocos(){
+  const cont=$("listaFocos"); if(!cont) return;
+  cont.querySelectorAll(".check").forEach(ch=>{
+    const on=window._focos.indexOf(ch.getAttribute("data-id"))>=0;
+    ch.classList.toggle("on",on);
+    ch.setAttribute("aria-checked",on?"true":"false");
+    ch.innerHTML=on?tick:"";
+  });
+}
+function guardarFocos(){
+  S.focos={fecha:hoy(),ids:(window._focos||[]).slice()};
+  guardar(); cerrarModal(); pintar(); avisar(S.focos.ids.length?"Focos guardados":"Sin focos esta semana");
+}
+
+/* ---- detalle de proyecto ---- */
+function verDetalle(id){
+  const p=proy(id); if(!p) return;
+  const pct=progreso(p), o=objetivo(p.objetivoId), f=estadoFecha(p.para);
+  let html='<div class="row" style="align-items:flex-start"><div><div class="eyebrow">'+esc(nombreArea(p.areaId))+'</div>'+
+    '<h2 style="margin-top:4px">'+esc(p.nombre)+'</h2></div>'+
+    '<button class="b b-fantasma b-mini" onclick="cerrarModal()">Cerrar</button></div>'+filete;
+  if(p.desc) html+='<p class="body-l" style="color:var(--texto-2)">'+esc(p.desc)+'</p>';
+  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">'+
+    (o?'<span class="etiqueta oro">'+esc(o.nombre)+'</span>':'<span class="etiqueta">Sin objetivo</span>')+
+    (f?'<span class="etiqueta '+f.clase+'">'+esc(f.txt)+'</span>':'')+
+    (esFoco(p.id)?'<span class="etiqueta info">Foco de la semana</span>':'')+
+    (p.minutos?'<span class="etiqueta">'+hhmm(p.minutos)+' cronometrados</span>':'')+'</div>';
+  html+='<div style="margin:24px 0 8px" class="row"><span class="caption">Avance</span>'+
+    '<span class="num" id="pctDetalle" style="font-size:20px">'+pct+' %</span></div>'+
+    '<div class="barra gruesa" id="barraDetalle"><div style="width:'+pct+'%"></div></div>';
+  html+='<div id="grafEvo" style="margin-top:16px"></div>';
+  if(p.modo==="hitos"){
+    html+='<div class="eyebrow" style="margin-top:32px">Hitos</div><div id="hitos" style="margin-top:12px"></div>'+
+      '<div style="display:flex;gap:8px;margin-top:12px"><input type="text" id="nuevoHito" placeholder="Añadir hito">'+
+      '<button class="b b-secundario b-mini" onclick="addHito(\''+p.id+'\')">Añadir</button></div>';
+  } else {
+    html+='<div class="eyebrow" style="margin-top:32px">Avance manual</div>'+
+      '<input type="range" min="0" max="100" step="5" value="'+(p.pct||0)+'" style="margin-top:12px" oninput="setPct(\''+p.id+'\',this.value)">';
+  }
+  html+='<div class="eyebrow" style="margin-top:32px">Pendientes</div><div id="pends" style="margin-top:12px"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:12px"><input type="text" id="nuevaPend" placeholder="Siguiente paso concreto">'+
+    '<input type="date" id="nuevaPendFecha" style="max-width:170px">'+
+    '<button class="b b-secundario b-mini" onclick="addPend(\''+p.id+'\')">Añadir</button></div>';
+  html+='<div style="display:flex;gap:8px;margin-top:32px;flex-wrap:wrap">'+
+    '<button class="b b-secundario b-mini" onclick="editarProyecto(\''+p.id+'\')">Editar</button>'+
+    '<button class="b b-secundario b-mini" onclick="cambiarEstado(\''+p.id+'\')">'+(p.estado==="activo"?"Pausar":"Reactivar")+'</button>'+
+    (p.estado!=="completado"?'<button class="b b-primario b-mini" onclick="completar(\''+p.id+'\')">Marcar completado</button>':'')+
+    '<button class="b b-secundario b-mini" onclick="archivar(\''+p.id+'\')">'+(p.archivado?"Desarchivar":"Archivar")+'</button>'+
+    '<button class="b b-fantasma b-mini" style="color:var(--error)" onclick="borrarProyecto(\''+p.id+'\')">Eliminar</button></div>';
+  modal(html);
+  pintarSubelementos(p);
+  dibujarEvolucion(p);
+}
+function pintarSubelementos(p){
+  const hs=$("hitos");
+  if(hs){ hs.innerHTML="";
+    (p.hitos||[]).forEach(x=>{
+      const f=h('<div class="pend'+(x.hecho?" hecha":"")+'"><div class="check'+(x.hecho?" on":"")+'">'+(x.hecho?tick:'')+
+        '</div><div style="flex:1"><div class="txt">'+esc(x.texto)+'</div></div>'+
+        '<button class="b-quitar" aria-label="Quitar hito">'+aspa+'</button></div>');
+      f.querySelector(".check").onclick=()=>{ x.hecho=!x.hecho; registrarProgreso(p); guardar(); verDetalle(p.id); };
+      f.querySelector("button").onclick=()=>{ p.hitos=p.hitos.filter(y=>y!==x); registrarProgreso(p); guardar(); verDetalle(p.id); };
+      hs.appendChild(f);
+    });
+    if(!(p.hitos||[]).length) hs.appendChild(h('<p class="small">Sin hitos todavía. Divide el proyecto en 3-7 pasos grandes.</p>'));
+  }
+  const ps=$("pends"); if(!ps) return;
+  ps.innerHTML="";
+  (p.pendientes||[]).forEach(x=>{
+    const ef=estadoFecha(x.para);
+    const f=h('<div class="pend'+(x.hecho?" hecha":"")+'"><div class="check'+(x.hecho?" on":"")+'">'+(x.hecho?tick:'')+
+      '</div><div style="flex:1"><div class="txt">'+esc(x.texto)+'</div>'+
+      (ef&&!x.hecho?'<div class="caption" style="color:'+(ef.clase==="error"?"var(--error)":ef.clase==="aviso"?"var(--aviso)":"var(--texto-3)")+'">'+esc(ef.txt)+'</div>':
+       x.para?'<div class="caption">'+fechaCorta(x.para)+'</div>':'')+'</div>'+
+      '<button class="b-quitar" aria-label="Quitar pendiente">'+aspa+'</button></div>');
+    f.querySelector(".check").onclick=()=>{ x.hecho=!x.hecho; p.tocado=hoy(); guardar(); verDetalle(p.id); };
+    f.querySelector("button").onclick=()=>{ p.pendientes=p.pendientes.filter(y=>y!==x); guardar(); verDetalle(p.id); };
+    ps.appendChild(f);
+  });
+  if(!(p.pendientes||[]).length) ps.appendChild(h('<p class="small">Sin pendientes. Añade el siguiente paso concreto — algo que puedas hacer en una sentada.</p>'));
+}
+function addHito(id){ const p=proy(id), i=$("nuevoHito");
+  const t=i.value.trim(); if(!t) return; p.hitos=p.hitos||[]; p.hitos.push({id:uid(),texto:t,hecho:false});
+  registrarProgreso(p); guardar(); verDetalle(id); }
+function addPend(id){ const p=proy(id), i=$("nuevaPend"), fe=$("nuevaPendFecha");
+  const t=i.value.trim(); if(!t) return; p.pendientes=p.pendientes||[];
+  p.pendientes.push({id:uid(),texto:t,hecho:false,para:(fe&&fe.value)||null});
+  p.tocado=hoy(); guardar(); verDetalle(id); }
+function setPct(id,v){ const p=proy(id); p.pct=+v; registrarProgreso(p); guardar();
+  const b=$("barraDetalle"); if(b) b.firstElementChild.style.width=v+"%";
+  const n=$("pctDetalle"); if(n) n.textContent=v+" %"; }
+function cambiarEstado(id){ const p=proy(id);
+  p.estado=p.estado==="activo"?"pausado":"activo"; p.tocado=hoy(); guardar(); cerrarModal(); pintar();
+  avisar(p.estado==="activo"?"Reactivado":"En pausa"); }
+function completar(id){ const p=proy(id);
+  p.estado="completado"; p.pct=100; registrarProgreso(p); guardar(); cerrarModal(); pintar(); avisar("Proyecto completado"); }
+function archivar(id){ const p=proy(id); p.archivado=!p.archivado; guardar(); cerrarModal(); pintar();
+  avisar(p.archivado?"Archivado":"De vuelta a la lista"); }
+function borrarProyecto(id){
+  modal('<h3>¿Eliminar el proyecto?</h3>'+filete+'<p class="body-l" style="color:var(--texto-2)">Se borran también sus hitos, pendientes e histórico. No se puede deshacer. Si solo quieres quitarlo de la vista, archívalo.</p>'+
+    '<div style="display:flex;gap:8px;margin-top:24px"><button class="b b-secundario" onclick="verDetalle(\''+id+'\')">Cancelar</button>'+
+    '<button class="b b-primario" style="background:var(--error)" onclick="confirmarBorrado(\''+id+'\')">Eliminar</button></div>');
+}
+function confirmarBorrado(id){ S.proyectos=S.proyectos.filter(p=>p.id!==id);
+  S.focos.ids=S.focos.ids.filter(x=>x!==id);
+  guardar(); cerrarModal(); pintar(); avisar("Proyecto eliminado"); }
+
+/* ---- edición de proyecto ---- */
+function editarProyecto(id){
+  const p=id?proy(id):null;
+  if(!S.areas.length){ avisar("Crea antes las áreas"); ir("areas"); return; }
+  const c=cicloActivo();
+  const obs=c?objetivosDe(c.id).filter(o=>o.estado==="activo"):[];
+  const html='<h2>'+(p?"Editar proyecto":"Nuevo proyecto")+'</h2>'+filete+
+    '<div class="stack-16" style="margin-top:24px">'+
+    '<div><label class="lb" for="pNombre">Nombre</label><input type="text" id="pNombre" value="'+esc(p?p.nombre:"")+'" placeholder="Programa Vida Inteligente"></div>'+
+    '<div><label class="lb" for="pArea">Área</label><select id="pArea">'+
+      S.areas.map(a=>'<option value="'+a.id+'"'+(p&&p.areaId===a.id?' selected':'')+'>'+esc(a.nombre)+'</option>').join("")+'</select></div>'+
+    '<div><label class="lb" for="pObjetivo">Objetivo que empuja</label><select id="pObjetivo">'+
+      '<option value="">Ninguno · trabajo de fondo</option>'+
+      obs.map(o=>'<option value="'+o.id+'"'+(p&&p.objetivoId===o.id?' selected':'')+'>'+esc(o.nombre)+'</option>').join("")+
+      '</select>'+(obs.length?'':'<p class="caption" style="margin-top:6px">No hay objetivos activos. Puedes crearlos en la pestaña Ciclo.</p>')+'</div>'+
+    '<div><label class="lb" for="pDesc">De qué va</label><textarea id="pDesc" placeholder="Una frase que te recuerde por qué importa">'+esc(p?p.desc:"")+'</textarea></div>'+
+    '<div><label class="lb" for="pPara">Fecha objetivo (opcional)</label><input type="date" id="pPara" value="'+esc(p&&p.para?p.para:"")+'"></div>'+
+    '<div><label class="lb">Cómo medir el avance</label>'+
+      '<div class="segmentado" style="margin-top:6px">'+
+      '<button id="mHitos" class="'+(!p||p.modo!=="manual"?"sel":"")+'" onclick="marcarModo(\'hitos\')">Por hitos</button>'+
+      '<button id="mManual" class="'+(p&&p.modo==="manual"?"sel":"")+'" onclick="marcarModo(\'manual\')">A mano</button>'+
+      '</div><p class="caption" style="margin-top:8px" id="modoAyuda">Divides el proyecto en hitos y el porcentaje se calcula solo.</p></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="'+(p?'verDetalle(\''+p.id+'\')':'cerrarModal()')+'">Cancelar</button>'+
+    '<button class="b b-primario" onclick="guardarProyecto('+(p?"'"+p.id+"'":"null")+')">Guardar</button></div>';
+  modal(html);
+  window._modo=p?(p.modo||"hitos"):"hitos";
+  if(window._modo==="manual") marcarModo("manual");
+}
+function marcarModo(m){ window._modo=m;
+  $("mHitos").classList.toggle("sel",m==="hitos"); $("mManual").classList.toggle("sel",m==="manual");
+  $("modoAyuda").textContent = m==="hitos"
+    ? "Divides el proyecto en hitos y el porcentaje se calcula solo."
+    : "Mueves un deslizador cuando quieras. Útil cuando el proyecto no se deja trocear."; }
+function guardarProyecto(id){
+  const nombre=val("pNombre");
+  if(!nombre){ avisar("Ponle un nombre"); return; }
+  const datos={nombre, areaId:$("pArea").value, objetivoId:$("pObjetivo").value||null,
+    desc:val("pDesc"), para:$("pPara").value||null, modo:window._modo||"hitos"};
+  if(id){ Object.assign(proy(id),datos); }
+  else S.proyectos.push(Object.assign({id:uid(),estado:"activo",archivado:false,pct:0,hitos:[],pendientes:[],
+    creado:hoy(),tocado:hoy(),historia:[{fecha:hoy(),pct:0}]},datos));
+  guardar(); cerrarModal(); pintar(); avisar(id?"Guardado":"Proyecto creado");
+}
+
+/* ---- objetivos ---- */
+function verObjetivo(id){
+  const o=objetivo(id); if(!o) return;
+  const pct=progresoObjetivo(o), ps=proyectosDe(o.id);
+  let html='<div class="row" style="align-items:flex-start"><div><div class="eyebrow">'+esc(nombreArea(o.areaId))+'</div>'+
+    '<h2 style="margin-top:4px">'+esc(o.nombre)+'</h2></div>'+
+    '<button class="b b-fantasma b-mini" onclick="cerrarModal()">Cerrar</button></div>'+filete;
+  if(o.porQue) html+='<p class="body-l" style="color:var(--texto-2)">'+esc(o.porQue)+'</p>';
+  html+='<div class="stack-8" style="margin-top:24px">'+
+    (o.resultado?'<div><div class="caption">Resultado esperado</div><div>'+esc(o.resultado)+'</div></div>':'')+
+    (o.metrica?'<div><div class="caption">Métrica principal</div><div>'+esc(o.metrica)+'</div></div>':'')+
+    (o.riesgos?'<div><div class="caption">Riesgos</div><div class="small">'+esc(o.riesgos)+'</div></div>':'')+
+    '</div>';
+  html+='<div style="margin:24px 0 8px" class="row"><span class="caption">Avance</span>'+
+    '<span class="num" style="font-size:20px">'+(pct==null?"—":pct+" %")+'</span></div>'+
+    '<div class="barra gruesa"><div style="width:'+(pct||0)+'%"></div></div>';
+  html+='<div class="eyebrow" style="margin-top:32px">Proyectos</div><div class="stack-8" style="margin-top:12px">'+
+    (ps.length? ps.map(p=>'<div class="row"><span>'+esc(p.nombre)+'</span><span class="num caption">'+progreso(p)+' %</span></div>').join("")
+      : '<p class="small">Ningún proyecto vinculado. Un objetivo sin proyectos es un deseo: dale al menos uno.</p>')+'</div>';
+  html+='<div style="display:flex;gap:8px;margin-top:32px;flex-wrap:wrap">'+
+    '<button class="b b-secundario b-mini" onclick="editarObjetivo(\''+o.id+'\')">Editar</button>'+
+    (o.estado!=="logrado"?'<button class="b b-primario b-mini" onclick="lograrObjetivo(\''+o.id+'\')">Marcar logrado</button>':'')+
+    '<button class="b b-fantasma b-mini" style="color:var(--error)" onclick="borrarObjetivo(\''+o.id+'\')">Eliminar</button></div>';
+  modal(html);
+}
+function editarObjetivo(id){
+  const o=id?objetivo(id):null;
+  const c=cicloActivo();
+  if(!c&&!o){ avisar("Abre antes un ciclo"); return; }
+  if(!S.areas.length){ avisar("Crea antes las áreas"); ir("areas"); return; }
+  const html='<h2>'+(o?"Editar objetivo":"Nuevo objetivo")+'</h2>'+filete+
+    '<p class="body-l" style="color:var(--texto-2)">Un objetivo del ciclo es un resultado, no una lista de tareas. Si no puedes decir cómo sabrás que se ha cumplido, todavía no es un objetivo.</p>'+
+    '<div class="stack-16" style="margin-top:24px">'+
+    '<div><label class="lb" for="oNombre">Objetivo</label><input type="text" id="oNombre" value="'+esc(o?o.nombre:"")+'" placeholder="Vender las primeras 30 plazas del programa"></div>'+
+    '<div><label class="lb" for="oArea">Área</label><select id="oArea">'+
+      S.areas.map(a=>'<option value="'+a.id+'"'+(o&&o.areaId===a.id?' selected':'')+'>'+esc(a.nombre)+'</option>').join("")+'</select></div>'+
+    '<div><label class="lb" for="oPorQue">Por qué importa</label><textarea id="oPorQue" placeholder="El motivo que te sostendrá en la semana ocho">'+esc(o?o.porQue:"")+'</textarea></div>'+
+    '<div><label class="lb" for="oResultado">Resultado concreto esperado</label><input type="text" id="oResultado" value="'+esc(o?o.resultado:"")+'" placeholder="30 inscripciones cerradas y cobradas"></div>'+
+    '<div><label class="lb" for="oMetrica">Métrica principal</label><input type="text" id="oMetrica" value="'+esc(o?o.metrica:"")+'" placeholder="Nº de inscripciones"></div>'+
+    '<div><label class="lb" for="oRiesgos">Riesgos principales</label><textarea id="oRiesgos" placeholder="Lo que puede hacerlo descarrilar">'+esc(o?o.riesgos:"")+'</textarea></div>'+
+    '<div><label class="lb" for="oPrioridad">Prioridad</label><select id="oPrioridad">'+
+      ["alta","media","baja"].map(x=>'<option'+(o&&o.prioridad===x?' selected':'')+'>'+x+'</option>').join("")+'</select></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="'+(o?'verObjetivo(\''+o.id+'\')':'cerrarModal()')+'">Cancelar</button>'+
+    '<button class="b b-primario" onclick="guardarObjetivo('+(o?"'"+o.id+"'":"null")+')">Guardar</button></div>';
+  modal(html);
+}
+function guardarObjetivo(id){
+  const nombre=val("oNombre");
+  if(!nombre){ avisar("Ponle un nombre"); return; }
+  const datos={nombre, areaId:$("oArea").value, porQue:val("oPorQue"), resultado:val("oResultado"),
+    metrica:val("oMetrica"), riesgos:val("oRiesgos"), prioridad:$("oPrioridad").value};
+  if(id) Object.assign(objetivo(id),datos);
+  else {
+    const c=cicloActivo();
+    S.objetivos.push(Object.assign({id:uid(),cicloId:c?c.id:null,estado:"activo",creado:hoy()},datos));
+  }
+  guardar(); cerrarModal(); pintar(); avisar(id?"Guardado":"Objetivo creado");
+}
+function lograrObjetivo(id){ const o=objetivo(id); o.estado="logrado"; guardar(); cerrarModal(); pintar(); avisar("Objetivo logrado"); }
+function borrarObjetivo(id){
+  S.proyectos.forEach(p=>{ if(p.objetivoId===id) p.objetivoId=null; });
+  S.objetivos=S.objetivos.filter(o=>o.id!==id);
+  guardar(); cerrarModal(); pintar(); avisar("Objetivo eliminado");
+}
+
+/* ---- áreas ---- */
+function editarArea(id){
+  const a=id?area(id):null;
+  const html='<h2>'+(a?"Editar área":"Nueva área")+'</h2>'+filete+
+    '<div class="stack-16" style="margin-top:24px">'+
+    '<div><label class="lb" for="aNom">Nombre</label><input type="text" id="aNom" value="'+esc(a?a.nombre:"")+'" placeholder="Negocio digital"></div>'+
+    '<div><label class="lb" for="aTipo">Tipo</label><select id="aTipo">'+
+      '<option value="personal"'+(a&&a.tipo==="personal"?" selected":"")+'>Personal</option>'+
+      '<option value="negocio"'+(a&&a.tipo==="negocio"?" selected":"")+'>Negocio</option></select></div>'+
+    '<div><label class="lb" for="aInd">Indicador principal</label><input type="text" id="aInd" value="'+esc(a?a.indicador:"")+'" placeholder="Contenidos publicados al mes"></div>'+
+    '<div><label class="lb" for="aMot">Por qué quieres mejorarla</label><textarea id="aMot" placeholder="Una frase, no un ensayo">'+esc(a?a.motivo:"")+'</textarea></div>'+
+    '<div><label class="lb" for="aAcc">Acción o hábito semanal</label><input type="text" id="aAcc" value="'+esc(a?a.accion:"")+'" placeholder="Una sesión de escritura los martes"></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="cerrarModal()">Cancelar</button>'+
+    '<button class="b b-primario" onclick="guardarArea('+(a?"'"+a.id+"'":"null")+')">Guardar</button>'+
+    (a?'<button class="b b-fantasma" style="color:var(--error)" onclick="borrarArea(\''+a.id+'\')">Eliminar</button>':'')+'</div>';
+  modal(html);
+}
+function guardarArea(id){
+  const nombre=val("aNom");
+  if(!nombre){ avisar("Ponle un nombre"); return; }
+  const datos={nombre,tipo:$("aTipo").value,indicador:val("aInd"),motivo:val("aMot"),accion:val("aAcc")};
+  if(id) Object.assign(area(id),datos);
+  else S.areas.push(Object.assign(crearArea(nombre,datos.tipo),datos));
+  guardar(); cerrarModal(); pintar(); avisar(id?"Área guardada":"Área creada");
+}
+function borrarArea(id){
+  const n=S.proyectos.filter(p=>p.areaId===id).length+S.objetivos.filter(o=>o.areaId===id).length;
+  if(n){ avisar("Tiene "+n+" cosa"+(n>1?"s":"")+" dentro. Muévelas antes."); return; }
+  S.areas=S.areas.filter(a=>a.id!==id); guardar(); cerrarModal(); pintar(); avisar("Área eliminada");
+}
+function puntuarAreas(){
+  if(!S.areas.length){ avisar("Crea antes las áreas"); return; }
+  let html='<h2>Puntuar las áreas</h2>'+filete+
+    '<p class="body-l" style="color:var(--texto-2)">Del 1 al 10, sin pensarlo mucho. La primera nota que se te ocurre suele ser la buena. '+
+    'La franja dorada marca dónde te gustaría estar.</p><div id="listaPunt" style="margin-top:24px"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="cerrarModal()">Cancelar</button>'+
+    '<button class="b b-primario" onclick="guardarPuntuaciones()">Guardar</button></div>';
+  modal(html);
+  window._punt={};
+  S.areas.forEach(a=>{ window._punt[a.id]={actual:a.actual,deseada:a.deseada}; });
+  pintarPuntuaciones();
+}
+function pintarPuntuaciones(){
+  const cont=$("listaPunt"); if(!cont) return;
+  cont.innerHTML="";
+  S.areas.forEach(a=>{
+    const v=window._punt[a.id];
+    const fila=h('<div class="fila-area"><div class="row"><h4>'+esc(a.nombre)+'</h4>'+
+      '<span class="caption num">'+(v.actual==null?"—":v.actual)+' → '+(v.deseada==null?"—":v.deseada)+'</span></div>'+
+      '<div class="caption" style="margin-top:6px">Dónde estás</div><div class="escala" data-k="actual"></div>'+
+      '<div class="caption" style="margin-top:8px">Dónde quieres estar</div><div class="escala" data-k="deseada"></div></div>');
+    fila.querySelectorAll(".escala").forEach(caja=>{
+      const k=caja.getAttribute("data-k");
+      caja.setAttribute("role","radiogroup");
+      for(let i=1;i<=10;i++){
+        const on=v[k]===i, tono=rampa(i,10);
+        const b=h('<button class="'+(on?"sel":"")+'" role="radio" aria-checked="'+(on?"true":"false")+'"'+
+          ' style="background:'+tono.fondo+';color:'+tono.texto+'">'+i+'</button>');
+        b.onclick=()=>{ v[k]=(v[k]===i?null:i); pintarPuntuaciones(); };
+        caja.appendChild(b);
+      }
+    });
+    cont.appendChild(fila);
+  });
+}
+function guardarPuntuaciones(){
+  const t=hoy();
+  S.areas.forEach(a=>{
+    const v=window._punt[a.id]; if(!v) return;
+    const cambio=a.actual!==v.actual;
+    a.actual=v.actual; a.deseada=v.deseada;
+    if(v.actual!=null&&cambio){ a.historia=a.historia||[]; a.historia.push({fecha:t,actual:v.actual}); }
+    if(v.actual!=null) a.revisado=t;
+  });
+  guardar(); cerrarModal(); pintar(); avisar("Áreas puntuadas");
+}
+
+/* ---- ajustes ---- */
+function abrirAjustes(){
+  window._sonido=S.ajustes.sonido;
+  modal('<h2>Ajustes</h2>'+filete+
+    '<div class="stack-16" style="margin-top:24px">'+
+    '<div><label class="lb" for="sNombre">Tu nombre</label><input type="text" id="sNombre" value="'+esc(S.ajustes.nombre)+'"></div>'+
+    '<div><label class="lb" for="sDias">Avisar cuando un proyecto lleve sin tocarse</label>'+
+    '<input type="number" id="sDias" value="'+S.ajustes.diasSinTocar+'" min="3" max="60"><p class="caption" style="margin-top:6px">días</p></div>'+
+    '<div><label class="lb" for="sFecha">Avisar de una fecha objetivo con</label>'+
+    '<input type="number" id="sFecha" value="'+S.ajustes.avisoFecha+'" min="1" max="30"><p class="caption" style="margin-top:6px">días de antelación</p></div>'+
+    '<div><label class="lb">Aviso sonoro del temporizador</label>'+
+    '<div class="segmentado" style="margin-top:6px">'+
+    '<button id="sSonSi" class="'+(S.ajustes.sonido?"sel":"")+'" onclick="marcarSonido(true)">Con sonido</button>'+
+    '<button id="sSonNo" class="'+(S.ajustes.sonido?"":"sel")+'" onclick="marcarSonido(false)">En silencio</button>'+
+    '</div></div>'+
+    '</div>'+
+    '<div class="eyebrow" style="margin-top:32px">Datos</div>'+
+    '<p class="small" style="margin-top:8px">Todo se guarda en este dispositivo. Copia este texto para tener una copia de seguridad, o pega una anterior para restaurarla. Hazlo antes de cualquier cambio grande.</p>'+
+    '<textarea id="sDatos" style="font-family:\'JetBrains Mono\',Menlo,monospace;font-size:12px;margin-top:12px">'+esc(JSON.stringify(S))+'</textarea>'+
+    '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+
+    '<button class="b b-secundario b-mini" onclick="copiarDatos()">Copiar datos</button>'+
+    '<button class="b b-secundario b-mini" onclick="restaurar()">Restaurar</button></div>'+
+    '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="cerrarModal()">Cancelar</button>'+
+    '<button class="b b-primario" onclick="guardarAjustes()">Guardar</button></div>');
+}
+function marcarSonido(v){ window._sonido=v;
+  $("sSonSi").classList.toggle("sel",v); $("sSonNo").classList.toggle("sel",!v);
+  if(v) desbloquearSonido(); }
+function guardarAjustes(){
+  S.ajustes.sonido = window._sonido===undefined ? S.ajustes.sonido : window._sonido;
+  S.ajustes.nombre=val("sNombre")||"Miguel";
+  S.ajustes.diasSinTocar=Math.max(3,+$("sDias").value||10);
+  S.ajustes.avisoFecha=Math.max(1,+$("sFecha").value||7);
+  guardar(); cerrarModal(); pintar(); avisar("Ajustes guardados");
+}
+function copiarDatos(){ const t=$("sDatos").value;
+  if(navigator.clipboard) navigator.clipboard.writeText(t).catch(()=>{});
+  avisar("Copia guardada en el portapapeles"); }
+function restaurar(){ try{ const d=JSON.parse($("sDatos").value); S=normalizar(migrar(d));
+  guardar(); cerrarModal(); pintar(); avisar("Datos restaurados"); }catch(e){ avisar("Ese texto no es válido"); } }
+
+/* ═══════════════════════════════════════════════════════════════
+   6. TEMPORIZADOR
+
+   Dos decisiones que lo sostienen todo:
+
+   1. El estado guarda una MARCA DE TIEMPO de fin, no un contador. iOS suspende
+      la PWA al bloquear la pantalla, así que cualquier setInterval se congela.
+      Calculando el restante contra Date.now() en cada pintada, el reloj es
+      correcto al volver aunque hayan pasado veinte minutos.
+   2. No se encadena solo. Al terminar una fase espera a que pulses la siguiente.
+      Encadenar en segundo plano daría fases fantasma que nunca viste correr.
+
+   Límite honesto: con el móvil bloqueado el aviso no suena en su momento. Se
+   mitiga con Wake Lock, que impide que la pantalla se apague mientras corre.
+   ═══════════════════════════════════════════════════════════════ */
+
+var tic=null, ctxAudio=null, bloqueoPantalla=null;
+
+function pom(){ return S.ajustes.pomodoro; }
+function minutosFase(fase){
+  const c=pom();
+  return fase==="pausaLarga"?c.pausaLarga : fase==="pausa"?c.pausa : c.trabajo;
+}
+function T(){ return S.temporizador; }
+function restante(){
+  const t=T(); if(!t) return 0;
+  if(t.enPausa) return t.restante;
+  return Math.max(0,t.fin-Date.now());
+}
+function mmss(ms){
+  const s=Math.ceil(ms/1000), m=Math.floor(s/60);
+  return String(m).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+}
+
+function arrancarFase(fase,tareaId,ronda){
+  const min=minutosFase(fase), ahora=Date.now();
+  /* `trabajado` acumula solo el tiempo con el reloj corriendo; `desde` marca el
+     arranque del tramo actual. Sin esta separación, una pausa de media hora se
+     contabilizaba como media hora de trabajo. */
+  S.temporizador={fase, ronda:ronda||1, tareaId:tareaId||null,
+    inicio:ahora, desde:ahora, trabajado:0,
+    fin:ahora+min*60000, enPausa:false, restante:0, agotada:false};
+  desbloquearSonido(); mantenerPantalla(true);
+  guardar(); pintar();
+}
+function empezarTrabajo(){
+  const t=T();
+  arrancarFase("trabajo", t?t.tareaId:null, t?t.ronda:1);
+}
+function empezarPausa(){
+  const t=T(); if(!t) return;
+  const larga = t.ronda % (pom().rondas||4) === 0;
+  arrancarFase(larga?"pausaLarga":"pausa", t.tareaId, t.ronda);
+}
+function alternarPausa(){
+  const t=T(); if(!t||t.agotada) return;
+  if(t.enPausa){
+    t.fin=Date.now()+t.restante; t.desde=Date.now(); t.enPausa=false; mantenerPantalla(true);
+  } else {
+    t.trabajado=trabajadoHasta(t); t.restante=restante(); t.enPausa=true; mantenerPantalla(false);
+  }
+  guardar(); pintar();
+}
+/* Tiempo con el reloj corriendo, topado en el fin de la fase: si iOS nos suspendió
+   toda la noche, la sesión valió lo que duraba, no ocho horas. */
+function trabajadoHasta(t){
+  const base=t.trabajado||0;
+  if(t.enPausa) return base;
+  const desde=t.desde||t.inicio||Date.now();
+  const hasta=Math.min(Date.now(), t.fin||Date.now());
+  return base+Math.max(0,hasta-desde);
+}
+/* Parar registra el tiempo trabajado hasta ahora: media sesión también cuenta. */
+function pararTemporizador(silencioso){
+  const t=T(); if(!t) return;
+  if(t.fase==="trabajo") registrarTiempo(t);
+  S.temporizador=null; mantenerPantalla(false);
+  guardar(); if(!silencioso){ pintar(); avisar("Temporizador parado"); }
+}
+function saltarFase(){
+  const t=T(); if(!t) return;
+  if(t.fase==="trabajo"){ registrarTiempo(t); t.agotada=true; t.enPausa=false; t.fin=Date.now(); guardar(); pintar(); }
+  else { siguienteDespuesDePausa(); }
+}
+function siguienteDespuesDePausa(){
+  const t=T(); if(!t) return;
+  arrancarFase("trabajo", t.tareaId, (t.ronda||1)+1);
+}
+/* Se llama cuando la fase llega a cero, venga de un tic o de volver a la app. */
+function faseAgotada(){
+  const t=T(); if(!t||t.agotada) return;
+  t.agotada=true; t.enPausa=false;
+  if(t.fase==="trabajo") registrarTiempo(t);
+  mantenerPantalla(false);
+  sonar(t.fase==="trabajo"?"fin":"vuelta");
+  guardar();
+  if(pestana==="hoy") pintar();
+}
+function registrarTiempo(t){
+  const min=Math.round(trabajadoHasta(t)/60000);
+  if(min<1) return;
+  const d=diaHoy(true);
+  const tarea=t.tareaId&&d.tareas.find(x=>x.id===t.tareaId);
+  if(tarea){
+    tarea.real=(tarea.real||0)+min;
+    if(tarea.proyectoId){ const p=proy(tarea.proyectoId);
+      if(p){ p.minutos=(p.minutos||0)+min; p.tocado=hoy(); } }
+  }
+  d.minutosSueltos=(d.minutosSueltos||0)+(tarea?0:min);
+}
+function enfocarTarea(id){
+  const t=T();
+  if(t&&!t.agotada&&t.fase==="trabajo"&&t.tareaId&&t.tareaId!==id){
+    avisar("Para la sesión antes de cambiar de tarea"); return;
+  }
+  if(t) t.tareaId=id; else S.temporizador={fase:"trabajo",ronda:1,tareaId:id,
+    inicio:0,fin:0,enPausa:false,restante:0,agotada:true};
+  guardar(); pintar();
+}
+
+/* ---- pintado ---- */
+function bloqueTemporizador(d){
+  const t=T(), c=pom();
+  const listo = !t || t.agotada || !t.fin;
+  const tarea = t&&t.tareaId&&d ? tareasDe(d).find(x=>x.id===t.tareaId) : null;
+  const fase = t?t.fase:"trabajo";
+  const etiqueta = fase==="trabajo"?"Trabajo":fase==="pausaLarga"?"Pausa larga":"Pausa";
+  const total = minutosFase(fase)*60000;
+  const ms = listo ? (t&&t.fin? 0 : total) : restante();
+  const pctFase = total? Math.round((1-ms/total)*100) : 0;
+
+  const total_rondas=c.rondas||4;
+  const ronda=t?t.ronda:1;
+  const enCiclo=((ronda-1)%total_rondas)+1;   // 1..rondas
+  const puntos=Array.from({length:total_rondas},(_,i)=>'<i class="'+(i<enCiclo?"on":"")+'"></i>').join("");
+
+  const card=h('<div class="card oscura stack-16"></div>');
+  card.appendChild(h('<div class="row" style="align-items:flex-start">'+
+    '<div class="eyebrow">'+esc(etiqueta)+'</div>'+
+    '<div class="rondas" aria-label="Ronda '+enCiclo+' de '+total_rondas+'">'+puntos+'</div></div>'));
+  card.appendChild(h('<div><div class="reloj num" id="reloj">'+mmss(ms)+'</div>'+
+    '<div class="aro" style="margin-top:12px"><div id="aroFase" style="width:'+(listo?0:pctFase)+'%"></div></div></div>'));
+  card.appendChild(h('<p class="small">'+(tarea?"Enfocado en «"+esc(tarea.texto)+"»":"Sin tarea enfocada — el tiempo no se asignará a ningún proyecto")+'</p>'));
+
+  const acc=h('<div style="display:flex;gap:8px;flex-wrap:wrap"></div>');
+  if(listo){
+    if(t&&t.agotada&&t.fase==="trabajo"){
+      acc.appendChild(boton("Empezar la pausa","b-oscuro",empezarPausa));
+      acc.appendChild(boton("Seguir trabajando","b-oscuro-2",()=>siguienteDespuesDePausa()));
+    } else if(t&&t.agotada&&t.fase!=="trabajo"&&t.fin){
+      acc.appendChild(boton("Volver al trabajo","b-oscuro",siguienteDespuesDePausa));
+    } else {
+      acc.appendChild(boton("Empezar","b-oscuro",empezarTrabajo));
+    }
+  } else {
+    acc.appendChild(boton(t.enPausa?"Reanudar":"Pausar","b-oscuro",alternarPausa));
+    acc.appendChild(boton("Saltar","b-oscuro-2",saltarFase));
+    acc.appendChild(boton("Parar","b-oscuro-2",()=>pararTemporizador()));
+  }
+  acc.appendChild(boton("Ciclos","b-oscuro-2",ajustarPomodoro));
+  card.appendChild(acc);
+
+  if(t&&t.agotada&&t.fase==="trabajo") card.appendChild(h('<p class="caption">Sesión terminada. El tiempo ya está anotado.</p>'));
+  return card;
+}
+function boton(txt,clase,fn){
+  const b=h('<button class="b b-mini '+clase+'">'+esc(txt)+'</button>');
+  b.onclick=fn; return b;
+}
+/* Un solo intervalo, y solo toca el DOM: el estado no se mueve con el reloj. */
+function refrescarReloj(){
+  clearInterval(tic);
+  tic=setInterval(()=>{
+    const t=T(); if(!t||t.agotada||t.enPausa||!t.fin) return;
+    const ms=restante();
+    const r=$("reloj"); if(r) r.textContent=mmss(ms);
+    const total=minutosFase(t.fase)*60000, a=$("aroFase");
+    if(a) a.style.width=Math.round((1-ms/total)*100)+"%";
+    if(ms<=0) faseAgotada();
+  },1000);
+}
+function ajustarPomodoro(){
+  const c=pom();
+  const preajustes=[[25,5,15,4,"Clásico"],[50,10,20,3,"Bloque largo"],[90,20,30,2,"Sesión profunda"]];
+  let html='<h2>Ciclos</h2>'+filete+
+    '<p class="body-l" style="color:var(--texto-2)">Elige un ritmo o ajústalo. Lo que funciona en consulta no es lo que funciona escribiendo.</p>'+
+    '<div class="segmentado" style="margin-top:24px" id="preajustes"></div>'+
+    '<div class="stack-16" style="margin-top:24px">'+
+    '<div><label class="lb" for="pTrabajo">Trabajo</label><input type="number" id="pTrabajo" min="5" max="180" value="'+c.trabajo+'"></div>'+
+    '<div><label class="lb" for="pPausa">Pausa corta</label><input type="number" id="pPausa" min="1" max="60" value="'+c.pausa+'"></div>'+
+    '<div><label class="lb" for="pLarga">Pausa larga</label><input type="number" id="pLarga" min="5" max="90" value="'+c.pausaLarga+'"></div>'+
+    '<div><label class="lb" for="pRondas">Rondas antes de la pausa larga</label><input type="number" id="pRondas" min="2" max="8" value="'+c.rondas+'"></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="cerrarModal()">Cancelar</button>'+
+    '<button class="b b-primario" onclick="guardarPomodoro()">Guardar</button></div>';
+  modal(html);
+  const cont=$("preajustes");
+  preajustes.forEach(([tr,pa,la,ro,lb])=>{
+    const b=h('<button class="'+(c.trabajo===tr&&c.pausa===pa?"sel":"")+'">'+lb+'<br><span class="caption">'+tr+'/'+pa+'</span></button>');
+    b.onclick=()=>{ $("pTrabajo").value=tr; $("pPausa").value=pa; $("pLarga").value=la; $("pRondas").value=ro;
+      Array.from(cont.children).forEach(x=>x.classList.remove("sel")); b.classList.add("sel"); };
+    cont.appendChild(b);
+  });
+}
+function guardarPomodoro(){
+  S.ajustes.pomodoro={
+    trabajo:Math.max(5,+$("pTrabajo").value||25),
+    pausa:Math.max(1,+$("pPausa").value||5),
+    pausaLarga:Math.max(5,+$("pLarga").value||15),
+    rondas:Math.max(2,+$("pRondas").value||4)};
+  guardar(); cerrarModal(); pintar(); avisar("Ciclos guardados");
+}
+
+/* ---- aviso sonoro ---- */
+/* Dos notas de seno con caída suave, generadas al vuelo: sin archivos externos y
+   sin nada que suene a alarma de teléfono. Al terminar el trabajo baja; al
+   volver del descanso, sube. */
+function desbloquearSonido(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    ctxAudio=ctxAudio||new AC();
+    if(ctxAudio.state==="suspended") ctxAudio.resume();
+  }catch(e){}
+}
+function sonar(tipo){
+  if(!S.ajustes.sonido) return;
+  try{
+    desbloquearSonido(); if(!ctxAudio) return;
+    const notas = tipo==="vuelta" ? [523.25,783.99] : [783.99,523.25];
+    notas.forEach((f,i)=>{
+      const o=ctxAudio.createOscillator(), g=ctxAudio.createGain();
+      o.type="sine"; o.frequency.value=f;
+      const t0=ctxAudio.currentTime+i*0.30;
+      g.gain.setValueAtTime(0.0001,t0);
+      g.gain.exponentialRampToValueAtTime(0.16,t0+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+0.70);
+      o.connect(g); g.connect(ctxAudio.destination);
+      o.start(t0); o.stop(t0+0.75);
+    });
+  }catch(e){}
+}
+/* ---- pantalla despierta ---- */
+async function mantenerPantalla(encender){
+  try{
+    if(encender){
+      if(!("wakeLock" in navigator)) return;
+      if(!bloqueoPantalla) bloqueoPantalla=await navigator.wakeLock.request("screen");
+    } else if(bloqueoPantalla){ await bloqueoPantalla.release(); bloqueoPantalla=null; }
+  }catch(e){ bloqueoPantalla=null; }
+}
+/* Al volver a la app: recalcular, cerrar la fase si venció mientras no estabas
+   y recuperar el bloqueo de pantalla, que iOS suelta al suspender. */
+function alVolver(){
+  const t=T(); if(!t) return;
+  if(!t.agotada&&!t.enPausa&&t.fin&&restante()<=0) faseAgotada();
+  else if(!t.agotada&&!t.enPausa&&t.fin) mantenerPantalla(true);
+  if(pestana==="hoy") pintar();
+}
+
+/* ─────────── 7. GRÁFICAS ─────────── */
+function lienzo(cont,W,H){
+  const dpr=window.devicePixelRatio||2;
+  const cv=document.createElement("canvas");
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.width="100%"; cv.style.height=H+"px";
+  cont.innerHTML=""; cont.appendChild(cv);
+  const c=cv.getContext("2d"); c.scale(dpr,dpr); return c;
+}
+function dibujarEvolucion(p){
+  const cont=$("grafEvo"); if(!cont) return;
+  const hs=(p.historia||[]).slice(-60);
+  if(hs.length<2){ cont.innerHTML='<p class="caption">La evolución aparecerá cuando haya varios registros.</p>'; return; }
+  const W=Math.min(560,cont.clientWidth||320), H=90;
+  const c=lienzo(cont,W,H);
+  const x0=0,x1=W,y0=8,y1=H-16, Y=v=>y1-(v/100)*(y1-y0);
+  [50,100].forEach(v=>{ c.setLineDash([3,4]); c.beginPath(); c.moveTo(x0,Y(v)); c.lineTo(x1,Y(v));
+    c.strokeStyle="rgba(158,141,119,.35)"; c.lineWidth=1; c.stroke(); c.setLineDash([]); });
+  const paso=(x1-x0)/(hs.length-1);
+  c.beginPath(); hs.forEach((pt,i)=>{ const x=x0+i*paso,y=Y(pt.pct); i===0?c.moveTo(x,y):c.lineTo(x,y); });
+  c.strokeStyle="#1D342E"; c.lineWidth=2; c.lineJoin="round"; c.stroke();
+  c.beginPath(); c.arc(x1,Y(hs[hs.length-1].pct),4,0,Math.PI*2); c.fillStyle="#A18039"; c.fill();
+  c.fillStyle="#6E766F"; c.font="11px Inter,sans-serif"; c.textAlign="left";
+  c.fillText(fechaCorta(hs[0].fecha),0,H-2);
+  c.textAlign="right"; c.fillText("hoy",W,H-2);
+}
+/* Rueda de áreas. Un solo tono, sin rampa multicolor: la comparación la hace
+   la forma, no el color. Relleno = actual, punteado = deseada. */
+function dibujarRueda(){
+  const cont=$("rueda"); if(!cont) return;
+  const as=areasPuntuadas(); const n=as.length;
+  if(n<3){ cont.innerHTML=""; return; }
+  const W=Math.min(560,cont.clientWidth||320), H=Math.min(360,W);
+  const c=lienzo(cont,W,H);
+  const cx=W/2, cy=H/2, R=Math.min(W,H)/2-46;
+  const ang=i=>-Math.PI/2+i*2*Math.PI/n;
+  const P=(i,v)=>[cx+Math.cos(ang(i))*R*(v/10), cy+Math.sin(ang(i))*R*(v/10)];
+
+  /* anillos y ejes */
+  c.strokeStyle="rgba(158,141,119,.30)"; c.lineWidth=1;
+  [2,4,6,8,10].forEach(v=>{ c.beginPath();
+    for(let i=0;i<=n;i++){ const [x,y]=P(i%n,v); i===0?c.moveTo(x,y):c.lineTo(x,y); }
+    c.stroke(); });
+  for(let i=0;i<n;i++){ const [x,y]=P(i,10); c.beginPath(); c.moveTo(cx,cy); c.lineTo(x,y); c.stroke(); }
+
+  /* deseada */
+  if(as.some(a=>typeof a.deseada==="number")){
+    c.setLineDash([4,4]); c.beginPath();
+    as.forEach((a,i)=>{ const [x,y]=P(i,typeof a.deseada==="number"?a.deseada:a.actual); i===0?c.moveTo(x,y):c.lineTo(x,y); });
+    c.closePath(); c.strokeStyle="#9E8D77"; c.lineWidth=1.5; c.stroke(); c.setLineDash([]);
+  }
+  /* actual */
+  c.beginPath();
+  as.forEach((a,i)=>{ const [x,y]=P(i,a.actual); i===0?c.moveTo(x,y):c.lineTo(x,y); });
+  c.closePath(); c.fillStyle="rgba(29,52,46,.14)"; c.fill();
+  c.strokeStyle="#1D342E"; c.lineWidth=2; c.lineJoin="round"; c.stroke();
+  as.forEach((a,i)=>{ const [x,y]=P(i,a.actual); c.beginPath(); c.arc(x,y,3,0,Math.PI*2); c.fillStyle="#1D342E"; c.fill(); });
+
+  /* etiquetas */
+  c.font="11px Inter,sans-serif"; c.fillStyle="#56605A";
+  as.forEach((a,i)=>{
+    const [x,y]=P(i,11.6);
+    c.textAlign = Math.abs(x-cx)<8 ? "center" : (x>cx?"left":"right");
+    c.textBaseline = y<cy-8 ? "bottom" : (y>cy+8?"top":"middle");
+    c.fillText(corto(a.nombre),x,y);
+  });
+}
+function corto(s){ const w=String(s).split(" "); return w[0].length>=5?w[0]:w.slice(0,2).join(" "); }
+
+/* ─────────── 8. ARRANQUE ─────────── */
+function cargarEjemplos(){
+  S.areas=[]; AREAS_BASE.forEach(([n,t])=>S.areas.push(crearArea(n,t)));
+  const A=nom=>{ const a=S.areas.find(x=>x.nombre===nom); return a?a.id:S.areas[0].id; };
+  [[ "Salud física",6,8,"Sesiones completadas por semana","Tres entrenamientos, uno de ellos largo"],
+   [ "Energía mental",5,8,"Días con la cabeza despejada","Una tarde sin pantallas"],
+   [ "Familia y relaciones",7,9,"Ratos sin prisa","Una comida larga el domingo"],
+   [ "Finanzas personales",6,8,"Revisión semanal hecha","Quince minutos de cuentas los viernes"],
+   [ "Negocio clínico",7,8,"Informes cerrados a tiempo","Bloque de informes los lunes"],
+   [ "Negocio digital",4,8,"Contenidos publicados al mes","Una sesión de escritura los martes"],
+   [ "Aprendizaje y sistemas",5,7,"Horas de estudio","Una hora de lectura técnica"],
+   [ "Ocio y descanso",4,7,"Noches de sueño suficiente","Acostarse antes de las doce"]]
+  .forEach(([n,ac,de,ind,acc])=>{ const a=S.areas.find(x=>x.nombre===n);
+    if(a){ a.actual=ac; a.deseada=de; a.indicador=ind; a.accion=acc; a.revisado=hoy(); a.historia=[{fecha:hoy(),actual:ac}]; } });
+
+  const c={id:uid(),nombre:"Ciclo 1 · otoño",inicio:sumarDias(hoy(),-21),fin:sumarDias(sumarDias(hoy(),-21),SEMANAS_CICLO*7-1),estado:"activo",cierre:null};
+  S.ciclos=[c];
+
+  const o1={id:uid(),cicloId:c.id,nombre:"Lanzar el programa Vida Inteligente",areaId:A("Negocio digital"),
+    estado:"activo",porQue:"Es el ingreso que no depende de mis horas de consulta.",
+    resultado:"30 plazas vendidas y el programa entregándose",metrica:"Nº de inscripciones",
+    prioridad:"alta",riesgos:"Que la grabación se alargue y no llegue la página de venta.",creado:hoy()};
+  const o2={id:uid(),cicloId:c.id,nombre:"Recuperar el fondo aeróbico",areaId:A("Salud física"),
+    estado:"activo",porQue:"Sin base física el resto del sistema se cae solo.",
+    resultado:"Tres sesiones semanales sostenidas doce semanas",metrica:"Sesiones completadas",
+    prioridad:"media",riesgos:"Semanas de consulta cargadas.",creado:hoy()};
+  S.objetivos=[o1,o2];
+
+  const mk=(nombre,areaNom,objetivoId,desc,hitos,pends,para)=>({
+    id:uid(),nombre,areaId:A(areaNom),objetivoId,desc,estado:"activo",archivado:false,modo:"hitos",pct:0,para:para||null,
+    hitos:hitos.map(([t,d])=>({id:uid(),texto:t,hecho:!!d})),
+    pendientes:pends.map(t=>({id:uid(),texto:t,hecho:false,para:null})),
+    creado:hoy(),tocado:hoy(),historia:[]});
+  S.proyectos=[
+    mk("Grabación de los módulos","Negocio digital",o1.id,"Las ocho sesiones grabadas y editadas.",
+      [["Guion de los módulos",true],["Grabar las sesiones",false],["Edición",false],["Certificados",false]],
+      ["Cerrar el índice del módulo 3","Pedir presupuesto de edición"],sumarDias(hoy(),18)),
+    mk("Página de venta","Negocio digital",o1.id,"Aplicar el sistema de diseño nuevo a la página del programa.",
+      [["Estructura",true],["Textos",false],["Formulario de pago",false]],
+      ["Revisar contraste en móvil"],sumarDias(hoy(),4)),
+    mk("Plan de carrera de doce semanas","Salud física",o2.id,"Volumen progresivo sin romperme.",
+      [["Test inicial",true],["Semanas 1-4",true],["Semanas 5-8",false],["Semanas 9-12",false]],
+      ["Comprar zapatillas nuevas"],null),
+    mk("Rediseño de comosentirsebien.com","Negocio digital",null,"Trabajo de fondo, sin objetivo del ciclo.",
+      [["DESIGN.md terminado",true],["Portada",true],["Artículos",false],["Formularios",false]],
+      [],null)
+  ];
+  S.proyectos.forEach(p=>registrarProgreso(p));
+  S.focos={fecha:hoy(),ids:[S.proyectos[0].id,S.proyectos[1].id]};
+  S.revisiones=[]; S.dias=[]; S.temporizador=null;
+  const d=diaHoy(true);
+  d.manana={hechoEn:new Date().toISOString(),
+    dificultades:"La consulta de la tarde se alargará y llegaré sin fuerzas a la grabación.",
+    control:"La hora a la que empiezo a grabar, no cuánto dura la consulta.",
+    intencion:"No arrastrar el cansancio a las decisiones. Si no puedo grabar bien, no grabo."};
+  d.tareas=[
+    {id:uid(),texto:"Cerrar el índice del módulo 3",min:60,hecho:true,real:55,
+     proyectoId:S.proyectos[0].id,pendienteId:S.proyectos[0].pendientes[0].id,areaId:null},
+    {id:uid(),texto:"Revisar contraste en móvil",min:30,hecho:false,real:0,
+     proyectoId:S.proyectos[1].id,pendienteId:S.proyectos[1].pendientes[0].id,areaId:null},
+    {id:uid(),texto:"Salir a correr 40 minutos",min:40,hecho:false,real:0,
+     proyectoId:S.proyectos[2].id,pendienteId:null,areaId:null}
+  ];
+  S.proyectos[0].minutos=55;
+  guardar(); pintar(); avisar("Ejemplos cargados — bórralos cuando quieras");
+}
+
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) alVolver(); });
+window.addEventListener("focus",alVolver);
+pintar();
+refrescarReloj();
+</script>
+</body>
+</html>
