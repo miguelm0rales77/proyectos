@@ -279,7 +279,7 @@ svg.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;st
 
 /* ─────────── 1. ESTADO, MIGRACIÓN Y PERSISTENCIA ─────────── */
 const CLAVE="csb-proyectos-v1";
-const VERSION=3;
+const VERSION=4;
 const SEMANAS_CICLO=12;
 
 /* Preguntas del diario. La de la mañana es una premeditatio malorum: no busca
@@ -339,7 +339,13 @@ function normalizar(d){
   out.ajustes=Object.assign({nombre:"Miguel",diasSinTocar:10,avisoFecha:7,sonido:true},out.ajustes||{});
   out.ajustes.pomodoro=Object.assign({trabajo:25,pausa:5,pausaLarga:15,rondas:4},out.ajustes.pomodoro||{});
   out.proyectos.forEach(p=>{ if(typeof p.minutos!=="number") p.minutos=0; });
-  out.dias.forEach(x=>{ if(!Array.isArray(x.tareas)) x.tareas=[]; });
+  out.areas.forEach(a=>{ if(typeof a.reparto!=="number") a.reparto=null; });
+  out.dias.forEach(x=>{
+    if(!Array.isArray(x.tareas)) x.tareas=[];
+    /* v3 escribía minutosSueltos y no lo leía nadie: era tiempo perdido */
+    if(typeof x.minutosSueltos==="number"){ x.sueltos=(x.sueltos||0)+x.minutosSueltos; delete x.minutosSueltos; }
+    if(typeof x.sueltos!=="number") x.sueltos=0;
+  });
   out._v=VERSION;
   return out;
 }
@@ -382,6 +388,7 @@ function adivinarTipo(nombre){
 }
 function crearArea(nombre,tipo){
   return {id:uid(),nombre:nombre,tipo:tipo||"personal",actual:null,deseada:null,
+    reparto:null,                 // % del tiempo dedicable que dices que merece
     indicador:"",motivo:"",accion:"",revisado:null,historia:[]};
 }
 
@@ -557,6 +564,89 @@ function resumenSemana(){
           minutos:ds.reduce((a,x)=>a+minReal(x),0)};
 }
 
+/* ═══════════ MOTOR DE TIEMPO ═══════════
+   `proyecto.minutos` es un total sin fecha y no sirve para «esta semana». La
+   verdad temporal vive en S.dias: cada tarea guarda sus minutos reales y de dónde
+   viene. Todo lo de abajo reconstruye el reparto desde ahí.
+
+   LÍMITE HONESTO: aquí solo hay tiempo REGISTRADO, cronometrado o imputado a
+   mano. No es tu tiempo, es el que anotaste. Todo el copy debe decir «registrado».
+   ═══════════════════════════════════════ */
+function diasEntre(desde,hasta){ return S.dias.filter(x=>x.fecha>=desde&&x.fecha<=hasta); }
+function ultimos(n){ return diasEntre(sumarDias(hoy(),-(n-1)),hoy()); }
+
+/* Dónde acaba el minuto: empujando un objetivo del ciclo, en trabajo de fondo,
+   en una acción de área, o suelto. */
+function destinoTarea(t){
+  if(t.proyectoId){ const p=proy(t.proyectoId); if(p) return p.objetivoId?"objetivo":"fondo"; }
+  if(t.areaId) return "area";
+  return "suelta";
+}
+function areaDeTarea(t){
+  if(t.areaId) return t.areaId;
+  if(t.proyectoId){ const p=proy(t.proyectoId); if(p) return p.areaId; }
+  return null;
+}
+function repartoTiempo(ds){
+  const out={objetivo:0,fondo:0,area:0,suelta:0,sinTarea:0,total:0};
+  ds.forEach(d=>{
+    (d.tareas||[]).forEach(t=>{ const m=+t.real||0; if(m<=0) return;
+      out[destinoTarea(t)]+=m; out.total+=m; });
+    const s=+d.sueltos||0; out.sinTarea+=s; out.total+=s;
+  });
+  return out;
+}
+function tiempoPorArea(ds){
+  const out={};
+  ds.forEach(d=>(d.tareas||[]).forEach(t=>{ const m=+t.real||0; if(m<=0) return;
+    const a=areaDeTarea(t); if(a) out[a]=(out[a]||0)+m; }));
+  return out;
+}
+function tiempoProyecto(ds,id){
+  let m=0; ds.forEach(d=>(d.tareas||[]).forEach(t=>{ if(t.proyectoId===id) m+=+t.real||0; }));
+  return m;
+}
+function tiempoObjetivo(ds,id){
+  return proyectosDe(id).reduce((a,p)=>a+tiempoProyecto(ds,p.id),0);
+}
+function actividad(p){ return tiempoProyecto(ultimos(7),p.id); }
+
+/* Reparto declarado, normalizado a 100. null si no has declarado ninguno. */
+function repartoDeseado(){
+  const con=S.areas.filter(a=>typeof a.reparto==="number"&&a.reparto>0);
+  const suma=con.reduce((x,a)=>x+a.reparto,0);
+  if(!suma) return null;
+  const out={}; con.forEach(a=>{ out[a.id]=a.reparto/suma*100; });
+  return out;
+}
+/* Dice y hace, por área, en porcentaje. Solo áreas con reparto declarado o con
+   tiempo registrado; el resto no aportan nada a la comparación. */
+function diceYHace(ds){
+  const des=repartoDeseado(), real=tiempoPorArea(ds);
+  const total=Object.values(real).reduce((a,b)=>a+b,0);
+  const ids=new Set(Object.keys(real).concat(des?Object.keys(des):[]));
+  const filas=[];
+  ids.forEach(id=>{
+    const a=area(id); if(!a) return;
+    filas.push({area:a, dice:des?(des[id]||0):null,
+      hace: total? (real[id]||0)/total*100 : 0, minutos: real[id]||0});
+  });
+  /* Ordenadas por desajuste, no por volumen: lo interesante es la distancia
+     entre lo que dices y lo que haces, no cuál se lleva más horas. */
+  filas.forEach(f=>{ f.desajuste = f.dice==null ? -1 : Math.abs(f.dice-f.hace); });
+  return {filas:filas.sort((x,y)=>y.desajuste-x.desajuste||y.hace-x.hace), total, hayDeseado:!!des};
+}
+/* Tendencia de un objetivo: cuántos puntos ha ganado en siete días. */
+function tendenciaObjetivo(o){
+  const ps=proyectosDe(o.id); if(!ps.length) return null;
+  const antes=ps.map(p=>{
+    const h=(p.historia||[]).filter(x=>dias(x.fecha,hoy())>=7).pop();
+    return h?h.pct:0;
+  });
+  const media=antes.reduce((a,b)=>a+b,0)/antes.length;
+  return Math.round((progresoObjetivo(o)||0)-media);
+}
+
 /* ---- áreas ---- */
 function areasPuntuadas(){ return S.areas.filter(a=>typeof a.actual==="number"); }
 function brecha(a){ return (typeof a.actual==="number"&&typeof a.deseada==="number") ? a.deseada-a.actual : null; }
@@ -682,6 +772,9 @@ function filaTarea(d,t){
     (t.min?' · '+hhmm(t.min)+' previstos':'')+(t.real?' · '+hhmm(t.real)+' reales':'')+'</div></div></div>');
   f.querySelector(".check").onclick=()=>marcarTarea(t.id);
   if(!d.cerrado){
+    const mas=h('<button class="b b-fantasma b-mini" style="padding:0 10px" aria-label="Añadir tiempo">+ min</button>');
+    mas.onclick=()=>imputarTiempo(t.id);
+    f.appendChild(mas);
     const foco=h('<button class="b b-fantasma b-mini" style="padding:0 10px">'+(enf?"Enfocada":"Enfocar")+'</button>');
     foco.onclick=()=>enfocarTarea(t.id);
     f.appendChild(foco);
@@ -692,6 +785,48 @@ function filaTarea(d,t){
     f.appendChild(q);
   }
   return f;
+}
+/* Imputación manual · el temporizador solo ve el trabajo de escritorio. Correr,
+   comer con los tuyos o una consulta larga no se cronometran, y sin esto el
+   reparto por áreas quedaría sistemáticamente sesgado hacia lo que haces sentado. */
+function imputarTiempo(id){
+  const d=diaHoy(true), t=d.tareas.find(x=>x.id===id); if(!t) return;
+  let html='<h2>Añadir tiempo</h2>'+filete+
+    '<p class="body-l" style="color:var(--texto-2)">«'+esc(t.texto)+'»'+
+    (t.real?' · '+hhmm(t.real)+' registrados hasta ahora':'')+'</p>'+
+    '<div class="segmentado" style="margin-top:24px" id="rapidos"></div>'+
+    '<div style="margin-top:16px"><label class="lb" for="impMin">O los minutos exactos</label>'+
+    '<input type="number" id="impMin" min="1" max="600" step="5" placeholder="45"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="cerrarModal()">Cancelar</button>'+
+    '<button class="b b-primario" onclick="guardarImputacion(\''+id+'\')">Añadir</button>'+
+    (t.real?'<button class="b b-fantasma" style="color:var(--error)" onclick="borrarTiempo(\''+id+'\')">Poner a cero</button>':'')+'</div>';
+  modal(html);
+  const cont=$("rapidos");
+  [15,30,45,60,90].forEach(m=>{
+    const b=h('<button>'+m+'</button>');
+    b.onclick=()=>{ $("impMin").value=m;
+      Array.from(cont.children).forEach(x=>x.classList.remove("sel")); b.classList.add("sel"); };
+    cont.appendChild(b);
+  });
+}
+function guardarImputacion(id){
+  const min=Math.round(+$("impMin").value||0);
+  if(min<1){ avisar("Pon los minutos"); return; }
+  sumarTiempo(id,min);
+  cerrarModal(); pintar(); avisar(hhmm(min)+" añadidos");
+}
+function sumarTiempo(id,min){
+  const d=diaHoy(true), t=d.tareas.find(x=>x.id===id); if(!t) return;
+  t.real=(t.real||0)+min;
+  if(t.proyectoId){ const p=proy(t.proyectoId);
+    if(p){ p.minutos=(p.minutos||0)+min; p.tocado=hoy(); } }
+  guardar();
+}
+function borrarTiempo(id){
+  const d=diaHoy(true), t=d.tareas.find(x=>x.id===id); if(!t) return;
+  if(t.proyectoId){ const p=proy(t.proyectoId);
+    if(p) p.minutos=Math.max(0,(p.minutos||0)-(t.real||0)); }
+  t.real=0; guardar(); cerrarModal(); pintar(); avisar("Tiempo borrado");
 }
 function addTarea(){
   const texto=val("nuevaTarea"); if(!texto) return;
@@ -760,8 +895,24 @@ function bloqueNoche(d){
   });
   html+='<div><label class="lb">¿Cómo ha ido el día?</label>'+
     '<p class="caption">Tu impresión, antes de mirar los números</p><div class="escala" id="escalaDia"></div></div>'+
+    '<div id="sinTiempo"></div>'+
     '<button class="b b-primario" onclick="cerrarDia()">Cerrar el día</button></div>';
   const c=h(html);
+  /* Lo hecho sin cronometrar se pregunta aquí, una vez, y no vuelve a molestar.
+     Es lo que impide que el reparto por áreas mienta. */
+  const pendientesDeTiempo=tareasDe(d).filter(t=>t.hecho&&!t.real);
+  if(pendientesDeTiempo.length){
+    const z=c.querySelector("#sinTiempo");
+    z.appendChild(h('<div class="eyebrow" style="margin-top:16px">¿Cuánto te llevaron?</div>'+
+      '<p class="caption" style="margin-top:6px">Las diste por hechas sin tiempo registrado. '+
+      'A ojo vale: sin esto, el reparto de tu tiempo se inclina solo hacia lo que haces sentado.</p>'));
+    pendientesDeTiempo.forEach(t=>{
+      z.appendChild(h('<div class="row" style="margin-top:12px">'+
+        '<span class="small" style="flex:1">'+esc(t.texto)+'</span>'+
+        '<input type="number" class="minSinTiempo" data-id="'+t.id+'" min="0" max="600" step="5" '+
+        'style="width:110px;min-width:110px" placeholder="'+(t.min||30)+'" aria-label="Minutos de '+esc(t.texto)+'"></div>'));
+    });
+  }
   const caja=c.querySelector("#escalaDia");
   caja.setAttribute("role","radiogroup");
   window._puntDia=d.punt||null;
@@ -796,6 +947,9 @@ function cerrarDia(){
   let algo=false;
   PREGUNTAS_NOCHE.forEach(([k])=>{ n[k]=val("n_"+k); if(n[k]) algo=true; });
   if(!algo&&!window._puntDia){ avisar("Escribe algo o puntúa el día"); return; }
+  document.querySelectorAll(".minSinTiempo").forEach(i=>{
+    const m=Math.round(+i.value||0); if(m>0) sumarTiempo(i.getAttribute("data-id"),m);
+  });
   d.noche=n; d.punt=window._puntDia||null; d.cerrado=true;
   pararTemporizador(true);
   guardar(); pintar(); avisar("Día cerrado");
@@ -827,15 +981,56 @@ function verDia(fecha){
   $("velo").querySelector(".modal").appendChild(bloquePuntuaciones(d.punt,obj));
 }
 
-/* ══════ PANEL ══════ */
+/* ══════ PANEL · el cerebro ══════
+   No es un resumen de lo que hay: es una respuesta a «¿estoy dedicando mi tiempo
+   a lo que digo que importa?». Por debajo de dos horas registradas no opina. */
+const MIN_DATO=120;
+function lecturaSemana(){
+  const ds=ultimos(7), r=repartoTiempo(ds), c=cicloActivo();
+  if(r.total<MIN_DATO) return {tono:"neutro",
+    txt:"Todavía hay poco tiempo registrado esta semana.",
+    detalle:"Con dos o tres sesiones más, esto empezará a decir algo. Hasta entonces prefiero callarme a inventarte un diagnóstico."};
+  const pctObj=Math.round(r.objetivo/r.total*100);
+  const act=activos().length, desat=desatendidos().length;
+  const t=c?pctTiempo(c):0, av=c?avanceCiclo(c):0;
+
+  let peor=null;
+  const dh=diceYHace(ds);
+  if(dh.hayDeseado) dh.filas.forEach(f=>{
+    if(f.dice==null) return;
+    const d=f.dice-f.hace;
+    if(d>=15&&(!peor||d>peor.d)) peor={f,d};
+  });
+
+  if(pctObj<30) return {tono:"aviso",
+    txt:"Has registrado "+hhmm(r.total)+", y solo el "+pctObj+" % ha ido a tus objetivos.",
+    detalle:"No siempre es un problema: hay semanas de mantenimiento. Pero merece una mirada en la revisión."};
+  if(peor) return {tono:"aviso",
+    txt:"Dices que "+peor.f.area.nombre+" merece un "+Math.round(peor.f.dice)+" % de tu tiempo. Esta semana ha recibido un "+Math.round(peor.f.hace)+" %.",
+    detalle:"Puede que falte tiempo, o puede que falte registrarlo."};
+  if(c&&t-av>=20) return {tono:"aviso",
+    txt:"El ciclo va por delante: ha pasado el "+t+" % y tus objetivos están al "+av+" %.",
+    detalle:"Lo que suele funcionar es recortar alcance, no apretar el ritmo."};
+  if(desat>=3) return {tono:"aviso",
+    txt:desat+" proyectos llevan más de "+S.ajustes.diasSinTocar+" días sin moverse.",
+    detalle:"Soltar alguno es una decisión legítima, no una derrota."};
+  if(pctObj>=60&&act>6) return {tono:"neutro",
+    txt:"Dedicas tiempo suficiente a tus prioridades, pero tienes "+act+" frentes abiertos.",
+    detalle:"El sistema aguanta mejor con menos proyectos vivos a la vez."};
+  if(pctObj>=60) return {tono:"bien",
+    txt:"El "+pctObj+" % de lo registrado ha ido a tus objetivos. La semana ha ido donde decías."};
+  return {tono:"neutro",
+    txt:"El "+pctObj+" % de lo registrado ha ido a tus objetivos."};
+}
+
 function verPanel(){
   const el=h('<div class="seccion stack-24"></div>');
   const c=cicloActivo(), act=activos(), pend=todasPendientes(), desat=desatendidos(), foc=focosVigentes();
+  const ds=ultimos(7), r=repartoTiempo(ds);
 
   el.appendChild(h('<div><div class="eyebrow">Panel · '+fechaLarga()+'</div>'+
-    '<h1 style="margin-top:8px">Buenos días, '+esc(S.ajustes.nombre)+'</h1>'+filete+'</div>'));
+    '<h1 style="margin-top:8px">Esta semana</h1>'+filete+'</div>'));
 
-  /* vacío */
   if(!S.proyectos.length&&!S.objetivos.length){
     el.appendChild(h('<div class="card texto-max stack-16"><h3>Empezamos por el ciclo</h3>'+
       '<p class="small">El sistema trabaja en bloques de doce semanas con uno a tres objetivos, no con listas interminables. '+
@@ -845,71 +1040,103 @@ function verPanel(){
     return el;
   }
 
-  /* ciclo activo */
+  /* ── la lectura ── */
+  const L=lecturaSemana();
+  const cab=h('<div class="card oscura stack-16"></div>');
+  cab.appendChild(h('<div class="row" style="align-items:flex-start">'+
+    '<div class="eyebrow">'+(c?"Ciclo en curso":"Sin ciclo abierto")+'</div>'+
+    (c?'<span class="etiqueta oro">Semana '+Math.min(semanaCiclo(c),SEMANAS_CICLO)+' de '+SEMANAS_CICLO+'</span>':'')+'</div>'));
+  cab.appendChild(h('<h2>'+esc(L.txt)+'</h2>'));
+  if(L.detalle) cab.appendChild(h('<p class="small">'+esc(L.detalle)+'</p>'));
   if(c){
-    const sem=semanaCiclo(c), av=avanceCiclo(c), t=pctTiempo(c);
-    const card=h('<div class="card oscura stack-16"></div>');
-    card.appendChild(h('<div class="row" style="align-items:flex-start">'+
-      '<div><div class="eyebrow">Ciclo en curso</div><h2 style="margin-top:4px">'+esc(c.nombre)+'</h2></div>'+
-      '<span class="etiqueta oro">Semana '+Math.min(sem,SEMANAS_CICLO)+' de '+SEMANAS_CICLO+'</span></div>'));
-    card.appendChild(h('<div><div class="row"><span class="caption">Avance de los objetivos</span>'+
+    const av=avanceCiclo(c), t=pctTiempo(c);
+    cab.appendChild(h('<div><div class="row"><span class="caption">Avance de los objetivos</span>'+
       '<span class="num small" style="color:var(--texto-oscuro)">'+av+' %</span></div>'+
       '<div class="barra gruesa" style="margin-top:6px"><div style="width:'+av+'%"></div></div>'+
-      '<div class="row" style="margin-top:12px"><span class="caption">Tiempo transcurrido</span>'+
+      '<div class="row" style="margin-top:12px"><span class="caption">Tiempo del ciclo</span>'+
       '<span class="num caption">'+t+' %</span></div>'+
       '<div class="barra tiempo" style="margin-top:6px"><div style="width:'+t+'%"></div></div></div>'));
-    if(t-av>=20) card.appendChild(h('<p class="small">El tiempo va por delante del avance. En la revisión conviene recortar objetivos antes que apretar el ritmo.</p>'));
-    el.appendChild(card);
-  } else if(S.ciclos.length){
-    el.appendChild(h('<div class="card tenue texto-max"><div class="eyebrow">Sin ciclo</div>'+
-      '<p class="body-l" style="margin-top:8px">No hay ningún ciclo abierto. Los proyectos siguen ahí, pero sin un bloque de doce semanas no hay foco que los ordene.</p>'+
-      '<button class="b b-secundario b-mini" style="margin-top:12px" onclick="ir(\'ciclo\')">Abrir un ciclo</button></div>'));
+  } else {
+    cab.appendChild(h('<button class="b b-mini b-oscuro" onclick="ir(\'ciclo\')">Abrir un ciclo</button>'));
   }
+  el.appendChild(cab);
 
-  /* focos de la semana */
+  /* ── a dónde fue el tiempo ── */
+  el.appendChild(bloqueTiempo(r,ds));
+
+  /* ── focos ── */
   if(foc.length){
-    el.appendChild(h('<div><div class="eyebrow">Focos de esta semana</div></div>'));
+    el.appendChild(h('<div><div class="eyebrow">Tus focos</div></div>'));
     const g=h('<div class="grid dos"></div>');
     foc.forEach(p=>g.appendChild(tarjetaProyecto(p)));
     el.appendChild(g);
   }
 
-  /* resumen */
-  const vencidas=pend.filter(o=>o.x.para&&dias(o.x.para,hoy())>0).length;
-  const res=h('<div class="grid dos"></div>');
-  const media=act.length?Math.round(act.reduce((a,p)=>a+progreso(p),0)/act.length):0;
-  res.appendChild(h('<div class="card"><div class="eyebrow">En marcha</div>'+
-    '<div class="display num" style="margin:8px 0">'+act.length+'</div>'+
-    '<div class="barra gruesa"><div style="width:'+media+'%"></div></div>'+
-    '<p class="caption" style="margin-top:8px">Avance medio del '+media+' %</p></div>'));
-  res.appendChild(h('<div class="card"><div class="eyebrow">Pendientes abiertas</div>'+
-    '<div class="display num" style="margin:8px 0">'+pend.length+'</div>'+
-    '<p class="caption">'+(vencidas?vencidas+' con la fecha pasada':'ninguna con la fecha pasada')+'</p></div>'));
-  el.appendChild(res);
+  /* ── objetivos con tendencia ── */
+  if(c){
+    const obs=objetivosDe(c.id).filter(o=>o.estado==="activo");
+    if(obs.length){
+      const co=h('<div class="card texto-max"><div class="eyebrow">Objetivos</div>'+
+        '<div id="listaObj" style="margin-top:16px"></div></div>');
+      const cont=co.querySelector("#listaObj");
+      obs.forEach(o=>{
+        const pct=progresoObjetivo(o), d=tendenciaObjetivo(o), min=tiempoObjetivo(ds,o.id);
+        const flecha=d==null?"":d>=3?"↑":d<=-1?"↓":"→";
+        const color=d==null?"var(--texto-3)":d>=3?"var(--exito)":d<=-1?"var(--error)":"var(--texto-3)";
+        const f=h('<div class="fila-area" style="padding:14px 0"><div class="row">'+
+          '<span style="font-weight:500">'+esc(o.nombre)+'</span>'+
+          '<span class="num caption">'+(pct==null?"—":pct+" %")+
+          (flecha?' <span style="color:'+color+'">'+flecha+'</span>':'')+'</span></div>'+
+          '<div class="barra" style="margin-top:6px"><div style="width:'+(pct||0)+'%"></div></div>'+
+          '<div class="caption" style="margin-top:6px">'+(min?hhmm(min)+' registrados esta semana':'sin tiempo registrado esta semana')+'</div></div>');
+        f.onclick=()=>verObjetivo(o.id); f.style.cursor="pointer";
+        cont.appendChild(f);
+      });
+      el.appendChild(co);
+    }
+  }
 
-  /* proyectos con fecha próxima */
+  /* ── fechas encima ── */
   const proximos=vivos().filter(p=>p.estado==="activo"&&p.para&&dias(hoy(),p.para)<=(S.ajustes.avisoFecha||7))
     .sort((a,b)=>a.para<b.para?-1:1);
   if(proximos.length){
-    const c2=h('<div class="card texto-max"><div class="eyebrow">Fechas encima</div>'+
+    const cf=h('<div class="card texto-max"><div class="eyebrow">Fechas encima</div>'+
       '<div class="stack-8" id="listaFechas" style="margin-top:16px"></div></div>');
-    const cont=c2.querySelector("#listaFechas");
+    const cont=cf.querySelector("#listaFechas");
     proximos.forEach(p=>{ const f=estadoFecha(p.para);
-      cont.appendChild(h('<div class="row"><span>'+esc(p.nombre)+'</span>'+
-        '<span class="etiqueta '+f.clase+'">'+esc(f.txt)+'</span></div>')); });
-    el.appendChild(c2);
+      const fila=h('<div class="row"><span>'+esc(p.nombre)+'</span>'+
+        '<span class="etiqueta '+f.clase+'">'+esc(f.txt)+'</span></div>');
+      fila.style.cursor="pointer"; fila.onclick=()=>verDetalle(p.id);
+      cont.appendChild(fila); });
+    el.appendChild(cf);
   }
 
-  /* desatendidos */
+  /* ── proyectos en riesgo: solo cuando hay algo que decidir ── */
   if(desat.length){
-    el.appendChild(h('<div class="card tenue texto-max"><div class="eyebrow" style="color:var(--aviso)">Sin tocar</div>'+
-      '<p class="body-l" style="margin-top:8px">'+desat.map(p=>'«'+esc(p.nombre)+'»').join(", ")+
-      (desat.length===1?' lleva ':' llevan ')+'más de '+(S.ajustes.diasSinTocar)+' días sin movimiento.</p>'+
-      '<p class="small" style="margin-top:8px">No siempre es un problema — a veces la respuesta correcta es pausarlo y quitarlo de la cabeza.</p></div>'));
+    const cr=h('<div class="card tenue"><div class="eyebrow" style="color:var(--aviso)">Piden una decisión</div>'+
+      '<p class="small" style="margin-top:8px">'+desat.length+' proyecto'+(desat.length>1?'s llevan':' lleva')+
+      ' más de '+S.ajustes.diasSinTocar+' días sin movimiento. Aparcar no es fracasar: es dejar de fingir que están vivos.</p>'+
+      '<div id="listaRiesgo" style="margin-top:16px"></div></div>');
+    const cont=cr.querySelector("#listaRiesgo");
+    desat.forEach(p=>{
+      const f=h('<div class="fila-area" style="padding:14px 0">'+
+        '<div class="row"><span style="font-weight:500">'+esc(p.nombre)+'</span>'+
+        '<span class="caption num">'+dias(p.tocado,hoy())+' días</span></div></div>');
+      const acc=h('<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>');
+      const bp=h('<button class="b b-secundario b-mini">Aparcar</button>');
+      bp.onclick=()=>{ p.estado="pausado"; p.tocado=hoy(); guardar(); pintar(); avisar("En pausa"); };
+      const bs=h('<button class="b b-fantasma b-mini">Sigue viva</button>');
+      bs.onclick=()=>{ p.tocado=hoy(); guardar(); pintar(); avisar("Marcada como viva"); };
+      const bv=h('<button class="b b-fantasma b-mini">Ver</button>');
+      bv.onclick=()=>verDetalle(p.id);
+      acc.appendChild(bp); acc.appendChild(bs); acc.appendChild(bv);
+      f.appendChild(acc); cont.appendChild(f);
+    });
+    el.appendChild(cr);
   }
 
-  /* proyectos activos que no son foco */
-  const resto=act.filter(p=>!esFoco(p.id));
+  /* ── el resto de proyectos vivos ── */
+  const resto=act.filter(p=>!esFoco(p.id)&&!desat.includes(p));
   if(resto.length){
     el.appendChild(h('<div style="margin-top:8px"><div class="eyebrow">'+(foc.length?"El resto":"Proyectos activos")+'</div></div>'));
     const lista=h('<div class="grid dos"></div>');
@@ -917,7 +1144,7 @@ function verPanel(){
     el.appendChild(lista);
   }
 
-  /* lo siguiente */
+  /* ── lo siguiente ── */
   if(pend.length){
     const c3=h('<div class="card texto-max"><div class="eyebrow">Lo siguiente</div>'+
       '<div id="listaPend" style="margin-top:16px"></div></div>');
@@ -937,6 +1164,61 @@ function verPanel(){
   return el;
 }
 
+/* A dónde fue el tiempo registrado, y la comparación con lo que dices. */
+function bloqueTiempo(r,ds){
+  const c=h('<div class="card"><div class="row" style="align-items:flex-start">'+
+    '<div class="eyebrow">Tiempo registrado · 7 días</div>'+
+    '<span class="num" style="font-size:20px">'+hhmm(r.total)+'</span></div>'+
+    '<div id="destinos" style="margin-top:16px"></div></div>');
+  const cont=c.querySelector("#destinos");
+  if(!r.total){
+    cont.appendChild(h('<p class="small">Nada registrado todavía. El tiempo se anota desde Hoy: '+
+      'con el temporizador, o a mano en cada tarea.</p>'));
+    return c;
+  }
+  [["objetivo","Hacia objetivos"],["fondo","Trabajo de fondo"],["area","Acciones de área"],
+   ["suelta","Tareas sueltas"],["sinTarea","Sin asignar"]].forEach(([k,lb])=>{
+    const m=r[k]; if(!m) return;
+    const pct=Math.round(m/r.total*100);
+    cont.appendChild(h('<div style="margin-bottom:12px"><div class="row">'+
+      '<span class="small">'+lb+'</span>'+
+      '<span class="num caption">'+hhmm(m)+' · '+pct+' %</span></div>'+
+      '<div class="barra" style="margin-top:6px"><div style="width:'+pct+'%"></div></div></div>'));
+  });
+
+  const dh=diceYHace(ds);
+  if(dh.hayDeseado&&dh.total){
+    c.appendChild(h('<div class="eyebrow" style="margin-top:32px">Lo que dices y lo que haces</div>'));
+    const t=h('<div id="diceHace" style="margin-top:16px"></div>');
+    /* Como mucho seis filas: una lista de ocho con seis ceros no se lee. */
+    const visibles=dh.filas.filter(f=>f.hace>=1||f.desajuste>=10).slice(0,6);
+    const ocultas=dh.filas.length-visibles.length;
+    visibles.forEach(f=>{
+      if(f.dice==null&&f.hace<1) return;
+      const dice=f.dice==null?null:Math.round(f.dice), hace=Math.round(f.hace);
+      const desvia=dice!=null&&Math.abs(dice-hace)>=15;
+      t.appendChild(h('<div style="margin-bottom:14px"><div class="row">'+
+        '<span class="small">'+esc(f.area.nombre)+'</span>'+
+        '<span class="num caption"'+(desvia?' style="color:var(--aviso)"':'')+'>'+
+        (dice==null?"—":dice+" %")+' → '+hace+' %</span></div>'+
+        '<div class="barra" style="margin-top:6px"><div style="width:'+hace+'%"></div></div>'+
+        (dice==null?'':'<div class="barra tiempo" style="margin-top:3px"><div style="width:'+dice+'%"></div></div>')+
+        '</div>'));
+    });
+    c.appendChild(t);
+    if(ocultas>0) c.appendChild(h('<p class="caption">'+ocultas+' área'+(ocultas>1?'s más sin desajuste apreciable':' más sin desajuste apreciable')+'.</p>'));
+    c.appendChild(h('<p class="caption" style="margin-top:8px">Barra oscura: lo que has hecho. Barra clara: lo que dices que merece. '+
+      'Solo cuenta el tiempo registrado, así que lo que no anotas no aparece aquí.</p>'));
+  } else if(dh.total) {
+    const b=h('<button class="b b-secundario b-mini" style="margin-top:24px">Declarar tu reparto</button>');
+    b.onclick=()=>ir("areas");
+    c.appendChild(h('<p class="caption" style="margin-top:24px">Si dices qué porcentaje de tu tiempo merece cada área, '+
+      'aquí verás la distancia entre lo que dices y lo que haces.</p>'));
+    c.appendChild(b);
+  }
+  return c;
+}
+
 function tarjetaProyecto(p){
   const pct=progreso(p), pend=pendientesAbiertas(p), o=objetivo(p.objetivoId);
   const c=h('<div class="card clic'+(esFoco(p.id)?" destacada":"")+(p.estado==="completado"?" tenue":"")+'"></div>');
@@ -950,8 +1232,17 @@ function tarjetaProyecto(p){
     (p.modo==="hitos"?((p.hitos||[]).filter(x=>x.hecho).length+" de "+(p.hitos||[]).length+" hitos"):"Avance estimado")+
     '</span><span class="num" style="font-size:15px;font-weight:500">'+pct+' %</span></div>'));
   c.appendChild(h('<div class="barra"><div style="width:'+pct+'%"></div></div>'));
+  /* Segunda dimensión: el porcentaje solo dice dónde está, no si se mueve.
+     Un proyecto puede llevar dos meses al 68 %. La actividad lo delata. */
+  const act=actividad(p), sinTocar=p.tocado?dias(p.tocado,hoy()):0;
+  const parado=sinTocar>=(S.ajustes.diasSinTocar||10);
+  c.appendChild(h('<div class="row" style="margin-top:12px">'+
+    '<span class="caption">Actividad</span>'+
+    '<span class="num caption"'+(parado?' style="color:var(--aviso)"':'')+'>'+
+    (act? '↑ '+hhmm(act)+' esta semana' : parado? sinTocar+' días sin tocarse' : 'sin tiempo registrado')+
+    '</span></div>'));
   const f=estadoFecha(p.para);
-  c.appendChild(h('<p class="caption" style="margin-top:12px">'+
+  c.appendChild(h('<p class="caption" style="margin-top:8px">'+
     (pend.length? pend.length+' pendiente'+(pend.length>1?'s':'')+' · ' : 'Sin pendientes · ')+
     'Último movimiento: '+fechaCorta(p.tocado)+
     (f?' · <span style="color:'+(f.clase==="error"?"var(--error)":f.clase==="aviso"?"var(--aviso)":"var(--texto-3)")+'">'+esc(f.txt)+'</span>':'')+
@@ -1140,6 +1431,15 @@ function verAreas(){
     if(typeof a.actual==="number"){
       fila.appendChild(h('<div class="barra" style="margin-top:10px"><div style="width:'+(a.actual*10)+'%"></div></div>'));
     }
+    const real7=tiempoPorArea(ultimos(7))[a.id]||0;
+    const des=repartoDeseado();
+    if(typeof a.reparto==="number"||real7){
+      const totalReal=Object.values(tiempoPorArea(ultimos(7))).reduce((x,y)=>x+y,0);
+      const pctReal=totalReal?Math.round(real7/totalReal*100):0;
+      const pctDice=des&&des[a.id]!=null?Math.round(des[a.id]):null;
+      fila.appendChild(h('<p class="caption" style="margin-top:8px">Tiempo · '+
+        (pctDice==null?'sin declarar':'dices '+pctDice+' %')+' → haces '+pctReal+' % ('+hhmm(real7)+' esta semana)</p>'));
+    }
     if(a.indicador) fila.appendChild(h('<p class="caption" style="margin-top:8px">Indicador: '+esc(a.indicador)+'</p>'));
     if(a.accion) fila.appendChild(h('<p class="small" style="margin-top:4px">Cada semana: '+esc(a.accion)+'</p>'));
     const n=vivos().filter(p=>p.areaId===a.id).length;
@@ -1177,15 +1477,24 @@ function verRevision(){
 
   const c=cicloActivo();
   if(tipoRev==="semanal"){
-    const act=activos(), sem=resumenSemana();
-    if(sem.dias){
-      const r=h('<div class="card texto-max"><div class="eyebrow">Los últimos siete días</div>'+
-        '<div class="grid dos" style="margin-top:16px">'+
-        '<div><div class="caption">Cómo los viviste</div><div class="display num">'+(sem.subjetiva==null?"—":sem.subjetiva)+'</div></div>'+
-        '<div><div class="caption">Lo que cerraste</div><div class="display num">'+(sem.objetiva==null?"—":sem.objetiva)+'</div></div>'+
-        '</div><p class="caption" style="margin-top:12px">'+sem.dias+' día'+(sem.dias>1?"s":"")+
-        ' con registro · '+hhmm(sem.minutos)+' de trabajo cronometrado</p></div>');
-      el.appendChild(r);
+    const act=activos(), sem=resumenSemana(), ds=ultimos(7), rt=repartoTiempo(ds);
+    /* La revisión ya no empieza en blanco: primero los datos que la app ya tiene,
+       después lo que llama la atención, y solo entonces te pregunta. */
+    const r=h('<div class="card texto-max"><div class="eyebrow">Tu semana</div>'+
+      '<div class="grid dos" style="margin-top:16px">'+
+      '<div><div class="caption">Cómo la viviste</div><div class="display num">'+(sem.subjetiva==null?"—":sem.subjetiva)+'</div></div>'+
+      '<div><div class="caption">Lo que cerraste</div><div class="display num">'+(sem.objetiva==null?"—":sem.objetiva)+'</div></div>'+
+      '</div><p class="caption" style="margin-top:12px">'+sem.dias+' día'+(sem.dias===1?"":"s")+
+      ' con registro · '+hhmm(rt.total)+' registrados, de los que '+hhmm(rt.objetivo)+' fueron a objetivos</p></div>');
+    el.appendChild(r);
+
+    const llama=loQueLlamaLaAtencion(ds,rt);
+    if(llama.length){
+      const c2=h('<div class="card tenue texto-max"><div class="eyebrow">Algo llama la atención</div>'+
+        '<div class="stack-16" id="llama" style="margin-top:16px"></div></div>');
+      const cont=c2.querySelector("#llama");
+      llama.forEach(x=>cont.appendChild(h('<p class="body-l">'+esc(x)+'</p>')));
+      el.appendChild(c2);
     }
     const est=h('<div class="card texto-max stack-16"><div class="eyebrow">Qué se ha movido</div></div>');
     act.forEach(p=>{
@@ -1203,7 +1512,20 @@ function verRevision(){
       '<div><label class="lb" for="rNo">Qué no funcionó</label><textarea id="rNo" placeholder="Lo que se atascó, sin buscar culpable"></textarea></div>'+
       '<div><label class="lb" for="rBloq">Qué bloqueará la semana que viene</label><textarea id="rBloq" placeholder="Dependencias, viajes, cosas fuera de tu control"></textarea></div>'+
       '<div><label class="lb" for="rPunt">Puntuación de la semana (1-10)</label><input type="number" id="rPunt" min="1" max="10" placeholder="7"></div>'+
+      '<div><label class="lb">La semana que viene voy a</label>'+
+      '<div class="segmentado" style="margin-top:6px" id="decision"></div></div>'+
       '</div>'));
+    const dec=$("decision")||el.querySelector("#decision");
+    if(dec){
+      window._decision=null;
+      [["seguir","Seguir igual"],["recortar","Recortar"],["cambiar","Cambiar foco"],["soltar","Soltar algo"]]
+      .forEach(([k,lb])=>{
+        const b=h('<button>'+lb+'</button>');
+        b.onclick=()=>{ window._decision=k;
+          Array.from(dec.children).forEach(x=>x.classList.remove("sel")); b.classList.add("sel"); };
+        dec.appendChild(b);
+      });
+    }
   } else if(tipoRev==="mensual"){
     el.appendChild(h('<div class="card texto-max stack-16"><div class="eyebrow">Nueva revisión mensual</div>'+
       '<p class="small">La mensual mira las áreas, no las tareas. Vuelve a puntuar lo que haya cambiado y decide si alguna merece un objetivo el próximo ciclo.</p>'+
@@ -1232,11 +1554,39 @@ function verRevision(){
       if(r.funciono) t+='<p class="small" style="color:var(--texto-2)">'+esc(r.funciono)+'</p>';
       if(r.noFunciono) t+='<p class="caption">No funcionó: '+esc(r.noFunciono)+'</p>';
       if(r.decisiones) t+='<p class="caption">Decisiones: '+esc(r.decisiones)+'</p>';
+      if(r.decision) t+='<p class="caption">Decidiste: '+esc(({seguir:"seguir igual",recortar:"recortar",cambiar:"cambiar de foco",soltar:"soltar algo"})[r.decision]||r.decision)+'</p>';
       cont.appendChild(h(t+'</div>'));
     });
     el.appendChild(hist);
   }
   return el;
+}
+/* Observaciones, no reprimendas. Solo se dicen cuando hay dato suficiente para
+   sostenerlas, y como mucho tres: una lista larga se lee como una regañina. */
+function loQueLlamaLaAtencion(ds,rt){
+  const out=[];
+  if(rt.total<MIN_DATO){
+    return ["Esta semana hay poco tiempo registrado, así que prefiero no sacar conclusiones."];
+  }
+  const foc=focosVigentes();
+  if(foc.length){
+    const enFocos=foc.reduce((a,p)=>a+tiempoProyecto(ds,p.id),0);
+    const fuera=rt.total-enFocos;
+    if(fuera>enFocos&&fuera>=120)
+      out.push("Has dedicado "+hhmm(fuera)+" a cosas que no eran tus focos, frente a "+hhmm(enFocos)+" a los que sí.");
+  }
+  const pctObj=Math.round(rt.objetivo/rt.total*100);
+  if(pctObj>=70) out.push("El "+pctObj+" % de lo registrado fue a objetivos del ciclo. Es una semana bien dirigida.");
+  const dh=diceYHace(ds);
+  if(dh.hayDeseado) dh.filas.forEach(f=>{
+    if(out.length>=3||f.dice==null) return;
+    const d=Math.round(f.dice-f.hace);
+    if(d>=20) out.push(esc(f.area.nombre)+": dices un "+Math.round(f.dice)+" % y ha recibido un "+Math.round(f.hace)+" %.");
+  });
+  const quietos=activos().filter(p=>!tiempoProyecto(ds,p.id));
+  if(out.length<3&&quietos.length>=3)
+    out.push(quietos.length+" proyectos activos no han recibido ni un minuto esta semana.");
+  return out.slice(0,3);
 }
 function guardarRevision(){
   const f=val("rFunciono");
@@ -1244,7 +1594,8 @@ function guardarRevision(){
   const c=cicloActivo();
   S.revisiones.push({id:uid(),tipo:tipoRev,fecha:hoy(),cicloId:c?c.id:null,
     funciono:f, noFunciono:val("rNo"), bloqueos:val("rBloq"), decisiones:val("rDec"),
-    focos:S.focos.ids.slice(), puntuacion:$("rPunt")?(+$("rPunt").value||null):null});
+    focos:S.focos.ids.slice(), puntuacion:$("rPunt")?(+$("rPunt").value||null):null,
+    decision:window._decision||null});
   guardar(); pintar(); avisar("Revisión guardada");
 }
 
@@ -1508,6 +1859,9 @@ function editarArea(id){
     '<div><label class="lb" for="aTipo">Tipo</label><select id="aTipo">'+
       '<option value="personal"'+(a&&a.tipo==="personal"?" selected":"")+'>Personal</option>'+
       '<option value="negocio"'+(a&&a.tipo==="negocio"?" selected":"")+'>Negocio</option></select></div>'+
+    '<div><label class="lb" for="aRep">Cuánto de tu tiempo merece</label>'+
+      '<input type="number" id="aRep" min="0" max="100" step="5" value="'+(a&&typeof a.reparto==="number"?a.reparto:"")+'" placeholder="20">'+
+      '<p class="caption" style="margin-top:6px">En porcentaje, sobre el tiempo del que dispones. No hace falta que sumen 100 entre todas: se normalizan solas. Déjalo vacío si esta área no compite por tu tiempo.</p></div>'+
     '<div><label class="lb" for="aInd">Indicador principal</label><input type="text" id="aInd" value="'+esc(a?a.indicador:"")+'" placeholder="Contenidos publicados al mes"></div>'+
     '<div><label class="lb" for="aMot">Por qué quieres mejorarla</label><textarea id="aMot" placeholder="Una frase, no un ensayo">'+esc(a?a.motivo:"")+'</textarea></div>'+
     '<div><label class="lb" for="aAcc">Acción o hábito semanal</label><input type="text" id="aAcc" value="'+esc(a?a.accion:"")+'" placeholder="Una sesión de escritura los martes"></div>'+
@@ -1520,7 +1874,9 @@ function editarArea(id){
 function guardarArea(id){
   const nombre=val("aNom");
   if(!nombre){ avisar("Ponle un nombre"); return; }
-  const datos={nombre,tipo:$("aTipo").value,indicador:val("aInd"),motivo:val("aMot"),accion:val("aAcc")};
+  const rep=$("aRep").value.trim();
+  const datos={nombre,tipo:$("aTipo").value,indicador:val("aInd"),motivo:val("aMot"),accion:val("aAcc"),
+    reparto: rep===""?null:Math.max(0,Math.min(100,+rep||0))};
   if(id) Object.assign(area(id),datos);
   else S.areas.push(Object.assign(crearArea(nombre,datos.tipo),datos));
   guardar(); cerrarModal(); pintar(); avisar(id?"Área guardada":"Área creada");
@@ -1726,7 +2082,7 @@ function registrarTiempo(t){
     if(tarea.proyectoId){ const p=proy(tarea.proyectoId);
       if(p){ p.minutos=(p.minutos||0)+min; p.tocado=hoy(); } }
   }
-  d.minutosSueltos=(d.minutosSueltos||0)+(tarea?0:min);
+  if(!tarea) d.sueltos=(d.sueltos||0)+min;   // tiempo cronometrado sin tarea enfocada
 }
 function enfocarTarea(id){
   const t=T();
@@ -1959,6 +2315,9 @@ function cargarEjemplos(){
    [ "Ocio y descanso",4,7,"Noches de sueño suficiente","Acostarse antes de las doce"]]
   .forEach(([n,ac,de,ind,acc])=>{ const a=S.areas.find(x=>x.nombre===n);
     if(a){ a.actual=ac; a.deseada=de; a.indicador=ind; a.accion=acc; a.revisado=hoy(); a.historia=[{fecha:hoy(),actual:ac}]; } });
+  [["Salud física",15],["Energía mental",5],["Familia y relaciones",20],["Finanzas personales",5],
+   ["Negocio clínico",25],["Negocio digital",20],["Aprendizaje y sistemas",5],["Ocio y descanso",5]]
+  .forEach(([n,r])=>{ const a=S.areas.find(x=>x.nombre===n); if(a) a.reparto=r; });
 
   const c={id:uid(),nombre:"Ciclo 1 · otoño",inicio:sumarDias(hoy(),-21),fin:sumarDias(sumarDias(hoy(),-21),SEMANAS_CICLO*7-1),estado:"activo",cierre:null};
   S.ciclos=[c];
