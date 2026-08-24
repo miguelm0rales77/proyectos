@@ -551,6 +551,39 @@ bloque("Persistencia");
   ok(w.S.focos.ids.indexOf(id)<0,"al borrar un proyecto sale de los focos");
 }
 
+/* ══ 5 bis. copia en archivo y deshacer ══ */
+bloque("Copia en archivo");
+{
+  const {w}=arrancar(null);
+  /* jsdom no implementa createObjectURL ni la descarga: se apaña con dobles */
+  let generado=null;
+  w.URL.createObjectURL=()=>{ generado="blob:falso"; return generado; };
+  w.URL.revokeObjectURL=()=>{};
+  w.HTMLAnchorElement.prototype.click=function(){ this.dataset.pulsado="1"; };
+
+  w.cargarEjemplos();
+  const antes=w.S.proyectos.length;
+  ok(w.diasDesdeCopia()===null,"sin copias no se inventa una fecha");
+  ok(w.hayCopiaPrevia()===false,"al arrancar no hay nada que deshacer");
+
+  w.descargarDatos();
+  ok(generado!==null,"descargar copia genera el archivo");
+  ok(w.diasDesdeCopia()===0,"descargar deja constancia de la fecha");
+
+  w.aplicarDatos({proyectos:[],dias:[],ciclos:[],areas:[]});
+  ok(w.S.proyectos.length===0,"aplicar una copia sustituye lo que había");
+  ok(w.hayCopiaPrevia()===true,"restaurar guarda una foto del estado anterior");
+
+  w.deshacerRestauracion();
+  ok(w.S.proyectos.length===antes,"deshacer devuelve los proyectos de antes");
+  ok(w.hayCopiaPrevia()===false,"deshacer consume la foto y no se repite");
+
+  w.aplicarDatos("esto no es un objeto");
+  ok(w.S.proyectos.length===antes,"una copia que no es un objeto no toca nada");
+  w.aplicarDatos(null);
+  ok(w.S.proyectos.length===antes,"un archivo vacío tampoco");
+}
+
 /* ══ 6. casos límite ══ */
 bloque("Casos límite");
 {
