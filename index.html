@@ -284,6 +284,7 @@ svg.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;st
 
 /* ─────────── 1. ESTADO, MIGRACIÓN Y PERSISTENCIA ─────────── */
 const CLAVE="csb-proyectos-v1";
+const CLAVE_PREVIA="csb-proyectos-v1-antes";   // red de seguridad para deshacer una restauración
 const VERSION=4;
 const SEMANAS_CICLO=12;
 
@@ -319,7 +320,7 @@ const estadoInicial={
   dias:[],                               // un registro por día con plan y diario
   focos:{fecha:null, ids:[]},
   temporizador:null,                     // ver §6 · sobrevive a recargas y suspensiones
-  ajustes:{ nombre:"Miguel", diasSinTocar:10, avisoFecha:7,
+  ajustes:{ nombre:"Miguel", diasSinTocar:10, avisoFecha:7, ultimaCopia:null,
             pomodoro:{trabajo:25, pausa:5, pausaLarga:15, rondas:4}, sonido:true },
   _v:VERSION
 };
@@ -333,7 +334,18 @@ function cargar(){
   }catch(e){}
   return normalizar(JSON.parse(JSON.stringify(estadoInicial)));
 }
-function guardar(){ try{localStorage.setItem(CLAVE,JSON.stringify(S));}catch(e){} }
+/* Si el navegador se queda sin cuota, setItem lanza y hasta ahora se tragaba el
+   error en silencio: seguías apuntando encima de algo que ya no se guardaba.
+   Ahora se avisa una sola vez, no en cada tecla. */
+let guardadoVivo=true;
+function guardar(){
+  try{ localStorage.setItem(CLAVE,JSON.stringify(S)); guardadoVivo=true; }
+  catch(e){
+    if(guardadoVivo){ guardadoVivo=false;
+      try{ avisar("No se está guardando. Descarga una copia desde Ajustes."); }catch(_){}
+    }
+  }
+}
 
 /* Rellena huecos sin pisar lo que ya existe. Sobrevive a datos parciales. */
 function normalizar(d){
@@ -1941,6 +1953,11 @@ function guardarPuntuaciones(){
 /* ---- ajustes ---- */
 function abrirAjustes(){
   window._sonido=S.ajustes.sonido;
+  const dc=diasDesdeCopia();
+  const cuando = dc===null ? "Todavía no has descargado ninguna copia"
+               : dc===0 ? "Última copia: hoy"
+               : dc===1 ? "Última copia: ayer"
+               : "Última copia: hace "+dc+" días";
   modal('<h2>Ajustes</h2>'+filete+
     '<div class="stack-16" style="margin-top:24px">'+
     '<div><label class="lb" for="sNombre">Tu nombre</label><input type="text" id="sNombre" value="'+esc(S.ajustes.nombre)+'"></div>'+
@@ -1954,12 +1971,21 @@ function abrirAjustes(){
     '<button id="sSonNo" class="'+(S.ajustes.sonido?"":"sel")+'" onclick="marcarSonido(false)">En silencio</button>'+
     '</div></div>'+
     '</div>'+
-    '<div class="eyebrow" style="margin-top:32px">Datos</div>'+
-    '<p class="small" style="margin-top:8px">Todo se guarda en este dispositivo. Copia este texto para tener una copia de seguridad, o pega una anterior para restaurarla. Hazlo antes de cualquier cambio grande.</p>'+
-    '<textarea id="sDatos" style="font-family:\'JetBrains Mono\',Menlo,monospace;font-size:12px;margin-top:12px">'+esc(JSON.stringify(S))+'</textarea>'+
+    '<div class="eyebrow" style="margin-top:32px">Copia de seguridad</div>'+
+    '<p class="small" style="margin-top:8px">Todo se guarda en este dispositivo y en ningún sitio más. Si limpias los datos del navegador o cambias de móvil, se va con ellos. Descarga un archivo cada tanto y déjalo donde guardes lo tuyo.</p>'+
+    '<p class="caption" style="margin-top:8px">'+cuando+'</p>'+
     '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+
-    '<button class="b b-secundario b-mini" onclick="copiarDatos()">Copiar datos</button>'+
-    '<button class="b b-secundario b-mini" onclick="restaurar()">Restaurar</button></div>'+
+    '<button class="b b-secundario b-mini" onclick="descargarDatos()">Descargar copia</button>'+
+    '<button class="b b-secundario b-mini" onclick="cargarCopia()">Cargar copia</button></div>'+
+    (hayCopiaPrevia()
+      ? '<div style="margin-top:16px"><button class="b b-fantasma b-mini" onclick="deshacerRestauracion()">Deshacer restauración</button>'+
+        '<p class="caption" style="margin-top:6px">Vuelve a los datos que había antes de la última restauración</p></div>'
+      : '')+
+    '<p class="caption" style="margin-top:20px">A mano: copia este texto, o pega una copia anterior y restaura.</p>'+
+    '<textarea id="sDatos" style="font-family:\'JetBrains Mono\',Menlo,monospace;font-size:12px;margin-top:8px">'+esc(JSON.stringify(S))+'</textarea>'+
+    '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+
+    '<button class="b b-secundario b-mini" onclick="copiarDatos()">Copiar texto</button>'+
+    '<button class="b b-secundario b-mini" onclick="restaurar()">Restaurar texto</button></div>'+
     '<div style="display:flex;gap:8px;margin-top:32px"><button class="b b-fantasma" onclick="cerrarModal()">Cancelar</button>'+
     '<button class="b b-primario" onclick="guardarAjustes()">Guardar</button></div>');
 }
@@ -1973,11 +1999,85 @@ function guardarAjustes(){
   S.ajustes.avisoFecha=Math.max(1,+$("sFecha").value||7);
   guardar(); cerrarModal(); pintar(); avisar("Ajustes guardados");
 }
+/* ---- copias de seguridad ----
+
+   Ya había copia por portapapeles, pero una copia que solo vive en el
+   portapapeles dura hasta que copies otra cosa: no es un sitio donde dejar algo
+   a seis meses vista. Un archivo con la fecha en el nombre sí, y se recupera
+   desde el móvil sin tener que pegar cien mil caracteres en un cuadro de texto.
+
+   Restaurar sigue siendo inmediato, como hasta ahora: no se añade una pantalla
+   de confirmación porque la red de seguridad es mejor que una pregunta. Antes de
+   pisar nada se guarda una foto del estado anterior, y mientras esa foto exista
+   aparece «Deshacer» en Ajustes. Un error deja de ser definitivo. */
+
 function copiarDatos(){ const t=$("sDatos").value;
   if(navigator.clipboard) navigator.clipboard.writeText(t).catch(()=>{});
+  marcarCopia();
   avisar("Copia guardada en el portapapeles"); }
-function restaurar(){ try{ const d=JSON.parse($("sDatos").value); S=normalizar(migrar(d));
-  guardar(); cerrarModal(); pintar(); avisar("Datos restaurados"); }catch(e){ avisar("Ese texto no es válido"); } }
+
+function marcarCopia(){ S.ajustes.ultimaCopia=hoy(); guardar(); }
+
+function diasDesdeCopia(){
+  if(!S.ajustes||!S.ajustes.ultimaCopia) return null;
+  return dias(S.ajustes.ultimaCopia, hoy());
+}
+
+function resumenEstado(d){
+  const n=a=>Array.isArray(a)?a.length:0;
+  return n(d.proyectos)+" proyectos · "+n(d.dias)+" días · "+n(d.ciclos)+" ciclos";
+}
+
+function descargarDatos(){
+  try{
+    const nombre="proyectos-"+hoy()+".json";
+    const url=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));
+    const a=document.createElement("a");
+    a.href=url; a.download=nombre; document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1000);
+    marcarCopia();
+    avisar("Copia descargada");
+  }catch(e){ avisar("No se pudo descargar la copia"); }
+}
+
+function cargarCopia(){
+  const inp=document.createElement("input");
+  inp.type="file"; inp.accept="application/json,.json";
+  inp.onchange=()=>{
+    const f=inp.files&&inp.files[0]; if(!f) return;
+    const lector=new FileReader();
+    lector.onload=()=>{ try{ aplicarDatos(JSON.parse(String(lector.result))); }
+                        catch(e){ avisar("Ese archivo no es una copia válida"); } };
+    lector.onerror=()=>avisar("No se pudo leer el archivo");
+    lector.readAsText(f);
+  };
+  inp.click();
+}
+
+function restaurar(){ try{ aplicarDatos(JSON.parse($("sDatos").value)); }
+  catch(e){ avisar("Ese texto no es válido"); } }
+
+/* Único punto por el que se pisa el estado con una copia. Guarda la foto previa
+   antes de tocar nada, y devuelve si lo hizo por si algún día hace falta. */
+function aplicarDatos(d){
+  if(!d||typeof d!=="object"||Array.isArray(d)){ avisar("Eso no es una copia de esta app"); return false; }
+  try{ localStorage.setItem(CLAVE_PREVIA, JSON.stringify(S)); }catch(e){}
+  S=normalizar(migrar(d));
+  guardar(); cerrarModal(); pintar(); avisar("Datos restaurados");
+  return true;
+}
+
+function hayCopiaPrevia(){ try{ return !!localStorage.getItem(CLAVE_PREVIA); }catch(e){ return false; } }
+
+function deshacerRestauracion(){
+  try{
+    const r=localStorage.getItem(CLAVE_PREVIA);
+    if(!r) return avisar("No hay nada que deshacer");
+    S=normalizar(migrar(JSON.parse(r)));
+    localStorage.removeItem(CLAVE_PREVIA);
+    guardar(); cerrarModal(); pintar(); avisar("Vuelto a los datos anteriores");
+  }catch(e){ avisar("No se pudo deshacer"); }
+}
 
 /* ═══════════════════════════════════════════════════════════════
    6. TEMPORIZADOR
