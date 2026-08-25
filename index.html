@@ -339,7 +339,7 @@ function cargar(){
    Ahora se avisa una sola vez, no en cada tecla. */
 let guardadoVivo=true;
 function guardar(){
-  try{ localStorage.setItem(CLAVE,JSON.stringify(S)); guardadoVivo=true; }
+  try{ localStorage.setItem(CLAVE,JSON.stringify(S)); guardadoVivo=true; programarSubida(); }
   catch(e){
     if(guardadoVivo){ guardadoVivo=false;
       try{ avisar("No se está guardando. Descarga una copia desde Ajustes."); }catch(_){}
@@ -407,6 +407,207 @@ function crearArea(nombre,tipo){
   return {id:uid(),nombre:nombre,tipo:tipo||"personal",actual:null,deseada:null,
     reparto:null,                 // % del tiempo dedicable que dices que merece
     indicador:"",motivo:"",accion:"",revisado:null,historia:[]};
+}
+
+/* ─────────── 1 bis. SINCRONIZACIÓN ENTRE DISPOSITIVOS ───────────
+
+   El problema: los datos viven en localStorage, que es por dispositivo. Lo que
+   apuntas en el Mac no existe en el iPhone. Esto lo arregla guardando una copia
+   del estado en Supabase y trayéndosela al abrir.
+
+   La decisión que manda aquí: esta app tiene un DIARIO dentro. Lo que escribes
+   por la noche no es una lista de la compra. La clave pública de Supabase va
+   dentro de un index.html que está en un repositorio público, así que cualquiera
+   que lo lea podría consultar la tabla. Por eso lo que sube NO es el estado: es
+   un sobre cifrado con AES-GCM y una frase que solo conoces tú. Supabase guarda
+   un bloque de base64 que no significa nada sin la frase, y la frase no sale
+   nunca de tus dispositivos.
+
+   Consecuencia honesta: si pierdes la frase, la copia de la nube es basura
+   irrecuperable. La copia local y los archivos de Ajustes siguen sirviendo, que
+   son la red de seguridad de verdad. El cifrado protege de curiosos, no
+   sustituye a las copias.
+
+   Y el conflicto: dos dispositivos editando a la vez no se pueden fusionar sin
+   inventar. Aquí gana quien subió antes, pero antes de adoptar lo de fuera se
+   guarda una foto de lo tuyo, así que «Deshacer restauración» en Ajustes lo
+   recupera. Se avisa siempre que pasa.
+
+   La tabla en Supabase (SQL Editor, una vez):
+
+     create table if not exists estado (
+       id text primary key,
+       sobre jsonb not null,
+       rev integer not null default 1,
+       actualizado timestamptz default now()
+     );
+     alter table estado enable row level security;
+     create policy estado_todo on estado for all to anon using (true) with check (true);
+
+   Para desactivar la sincronización del todo: deja SYNC.url en cadena vacía. */
+
+const SYNC={
+  url:"https://kikkqgocuvrkbhklrrkt.supabase.co",
+  clave:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpa2txZ29jdXZya2Joa2xycmt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1ODc1NzcsImV4cCI6MjEwMzE2MzU3N30.N7cdvjE7Z_mLwZHqR0xNi0aoMDHZLPMvbMM9Q6WYokY",
+  id:"proyectos-miguel"
+};
+const CLAVE_FRASE="csb-proyectos-frase";
+const CLAVE_SYNC="csb-proyectos-sync";
+
+let syncPendiente=false, syncAplicando=false, syncTimer=null, syncEstado="", syncCuando=null;
+/* Si la frase no descifra lo que hay arriba, se PARA todo. Sin esto, un
+   dispositivo mal configurado subiría su estado vacío encima del bueno: se
+   dio en la prueba y es exactamente la clase de pérdida que no se perdona. */
+let syncBloqueado=false;
+
+function syncPosible(){
+  return !!(SYNC.url && SYNC.clave && typeof fetch==="function"
+            && typeof window!=="undefined" && window.crypto && window.crypto.subtle);
+}
+function frase(){ try{ return localStorage.getItem(CLAVE_FRASE)||""; }catch(e){ return ""; } }
+function syncActivo(){ return syncPosible() && !!frase(); }
+function leerSync(){ try{ return JSON.parse(localStorage.getItem(CLAVE_SYNC))||{rev:0}; }catch(e){ return {rev:0}; } }
+function escribirSync(o){ try{ localStorage.setItem(CLAVE_SYNC,JSON.stringify(o)); }catch(e){} }
+
+/* ---- cifrado ---- */
+const b64=(u)=>btoa(String.fromCharCode.apply(null,Array.from(u)));
+const ub64=(t)=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+
+async function claveDe(f,salt){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(f),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:150000,hash:"SHA-256"},base,
+    {name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function cifrar(obj,f){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const k=await claveDe(f,salt);
+  const buf=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(JSON.stringify(obj)));
+  return {v:1,salt:b64(salt),iv:b64(iv),datos:b64(new Uint8Array(buf))};
+}
+async function descifrar(sobre,f){
+  const k=await claveDe(f,ub64(sobre.salt));
+  const buf=await crypto.subtle.decrypt({name:"AES-GCM",iv:ub64(sobre.iv)},k,ub64(sobre.datos));
+  return JSON.parse(new TextDecoder().decode(buf));
+}
+
+/* ---- transporte ---- */
+function apiSync(ruta,opts){
+  opts=opts||{};
+  return fetch(SYNC.url.replace(/\/+$/,"")+"/rest/v1"+ruta,{
+    method:opts.method||"GET", cache:"no-store",
+    headers:Object.assign({apikey:SYNC.clave,Authorization:"Bearer "+SYNC.clave,
+      "Content-Type":"application/json"},opts.headers||{}),
+    body:opts.body
+  });
+}
+async function leerRemoto(){
+  const r=await apiSync("/estado?id=eq."+encodeURIComponent(SYNC.id)+"&select=*");
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const filas=await r.json();
+  return filas.length?filas[0]:null;
+}
+
+/* ---- ciclo ---- */
+function programarSubida(){
+  if(!syncActivo()||syncAplicando||syncBloqueado) return;
+  syncPendiente=true;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>sincronizar(),2000);
+}
+
+async function sincronizar(reintento){
+  if(!syncActivo()||syncBloqueado) return;
+  if(typeof navigator!=="undefined" && navigator.onLine===false){ syncEstado="sin-red"; return; }
+  const f=frase();
+  try{
+    const remoto=await leerRemoto();
+    const local=leerSync();
+
+    if(!remoto){ return empujar(0,f,true); }
+
+    /* lo de fuera es más nuevo: se adopta y punto. Lo local no se sube encima,
+       porque no sabríamos fusionarlo sin inventar; queda en «Deshacer». */
+    if(remoto.rev>local.rev){ await adoptar(remoto,f); return; }
+
+    if(syncPendiente) return empujar(local.rev,f,false);
+
+    syncEstado="al-dia"; syncCuando=Date.now();
+  }catch(e){ syncEstado="error"; }
+}
+
+let yaReintentado=false;
+async function empujar(rev,f,esNuevo){
+  try{
+    const cuerpo={sobre:await cifrar(S,f),rev:rev+1,actualizado:new Date().toISOString()};
+    let filas;
+    if(esNuevo){
+      const r=await apiSync("/estado",{method:"POST",headers:{Prefer:"return=representation"},
+        body:JSON.stringify(Object.assign({id:SYNC.id},cuerpo))});
+      filas=r.ok?await r.json():[];
+    }else{
+      const r=await apiSync("/estado?id=eq."+encodeURIComponent(SYNC.id)+"&rev=eq."+rev,
+        {method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(cuerpo)});
+      filas=r.ok?await r.json():[];
+    }
+    if(!filas.length){                       /* alguien se adelantó entre el leer y el escribir */
+      syncEstado="conflicto";
+      if(!yaReintentado){ yaReintentado=true; await sincronizar(true); yaReintentado=false; }
+      return;
+    }
+    syncPendiente=false; syncEstado="al-dia"; syncCuando=Date.now();
+    escribirSync({rev:cuerpo.rev,cuando:syncCuando});
+  }catch(e){ syncEstado="error"; }
+}
+
+async function adoptar(remoto,f){
+  let datos;
+  try{ datos=await descifrar(remoto.sobre,f); }
+  catch(e){
+    syncBloqueado=true; syncEstado="frase";
+    avisar("La frase de este dispositivo no coincide");
+    return false;
+  }
+  syncAplicando=true;
+  try{ localStorage.setItem(CLAVE_PREVIA,JSON.stringify(S)); }catch(e){}
+  S=normalizar(migrar(datos));
+  guardar();
+  escribirSync({rev:remoto.rev,cuando:Date.now()});
+  syncAplicando=false;
+  syncPendiente=false;                 /* lo de fuera ha ganado: no hay nada que subir */
+  syncEstado="al-dia"; syncCuando=Date.now();
+  if(typeof pintar==="function") pintar();
+  avisar("Cambios traídos del otro dispositivo");
+  return true;
+}
+
+function activarSync(){
+  const f=val("sFrase");
+  if(f.length<6) return avisar("La frase necesita al menos seis caracteres");
+  try{ localStorage.setItem(CLAVE_FRASE,f); }catch(e){}
+  escribirSync({rev:0});
+  syncBloqueado=false; syncEstado=""; syncPendiente=true;
+  cerrarModal();
+  sincronizar().then(()=>{ avisar("Sincronización activada"); });
+}
+function desactivarSync(){
+  try{ localStorage.removeItem(CLAVE_FRASE); localStorage.removeItem(CLAVE_SYNC); }catch(e){}
+  syncPendiente=false; syncEstado=""; syncBloqueado=false;
+  cerrarModal(); avisar("Sincronización desactivada aquí");
+}
+function sincronizarAhora(){ syncPendiente=true; sincronizar().then(()=>{ cerrarModal(); abrirAjustes(); }); }
+
+function textoSync(){
+  if(!syncPosible()) return "Este navegador no puede cifrar, así que la sincronización no está disponible";
+  if(!frase()) return "Desactivada en este dispositivo";
+  if(syncEstado==="sin-red") return "Sin conexión · se subirá al volver la red";
+  if(syncEstado==="frase") return "La frase no coincide con la de la otra copia";
+  if(syncEstado==="error") return "No se ha podido contactar con el servidor";
+  if(syncEstado==="al-dia"&&syncCuando){
+    const m=Math.round((Date.now()-syncCuando)/60000);
+    return m<1?"Al día · ahora mismo":m===1?"Al día · hace un minuto":"Al día · hace "+m+" minutos";
+  }
+  return "Activada en este dispositivo";
 }
 
 /* ─────────── 2. UTILIDADES ─────────── */
@@ -1981,7 +2182,19 @@ function abrirAjustes(){
       ? '<div style="margin-top:16px"><button class="b b-fantasma b-mini" onclick="deshacerRestauracion()">Deshacer restauración</button>'+
         '<p class="caption" style="margin-top:6px">Vuelve a los datos que había antes de la última restauración</p></div>'
       : '')+
-    '<p class="caption" style="margin-top:20px">A mano: copia este texto, o pega una copia anterior y restaura.</p>'+
+    '<div class="eyebrow" style="margin-top:32px">Sincronización</div>'+
+    '<p class="small" style="margin-top:8px">Para tener lo mismo en el móvil y en el ordenador. Lo que se sube va cifrado con una frase que solo tienes tú, así que en el servidor queda un bloque ilegible. Si pierdes la frase, esa copia no se recupera; las de arriba sí.</p>'+
+    '<p class="caption" style="margin-top:8px">'+esc(textoSync())+'</p>'+
+    (!syncPosible() ? ''
+      : (frase() && syncEstado!=="frase")
+        ? '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+
+          '<button class="b b-secundario b-mini" onclick="sincronizarAhora()">Sincronizar ahora</button>'+
+          '<button class="b b-fantasma b-mini" onclick="desactivarSync()">Desactivar aquí</button></div>'
+        : '<div style="margin-top:12px"><label class="lb" for="sFrase">Frase de cifrado</label>'+
+          '<input type="text" id="sFrase" placeholder="La misma en todos tus dispositivos" autocomplete="off">'+
+          '<p class="caption" style="margin-top:6px">Apúntala donde no se te pierda</p>'+
+          '<button class="b b-secundario b-mini" style="margin-top:12px" onclick="activarSync()">Activar sincronización</button></div>')+
+    '<p class="caption" style="margin-top:32px">A mano: copia este texto, o pega una copia anterior y restaura.</p>'+
     '<textarea id="sDatos" style="font-family:\'JetBrains Mono\',Menlo,monospace;font-size:12px;margin-top:8px">'+esc(JSON.stringify(S))+'</textarea>'+
     '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+
     '<button class="b b-secundario b-mini" onclick="copiarDatos()">Copiar texto</button>'+
@@ -2332,6 +2545,7 @@ async function mantenerPantalla(encender){
 /* Al volver a la app: recalcular, cerrar la fase si venció mientras no estabas
    y recuperar el bloqueo de pantalla, que iOS suelta al suspender. */
 function alVolver(){
+  sincronizar();                       /* al volver a la app, mirar si el otro dispositivo escribió */
   const t=T(); if(!t) return;
   if(!t.agotada&&!t.enPausa&&t.fin&&restante()<=0) faseAgotada();
   else if(!t.agotada&&!t.enPausa&&t.fin) mantenerPantalla(true);
@@ -2478,8 +2692,14 @@ function cargarEjemplos(){
 
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) alVolver(); });
 window.addEventListener("focus",alVolver);
+window.addEventListener("online",()=>{ syncEstado=""; sincronizar(); });
+window.addEventListener("offline",()=>{ syncEstado="sin-red"; });
 pintar();
 refrescarReloj();
+sincronizar();
+/* un repaso tranquilo mientras la app está delante: no es un chat, no hace
+   falta más ritmo que este */
+setInterval(()=>{ if(!document.hidden) sincronizar(); },90000);
 </script>
 </body>
 </html>

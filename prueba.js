@@ -584,6 +584,30 @@ bloque("Copia en archivo");
   ok(w.S.proyectos.length===antes,"un archivo vacío tampoco");
 }
 
+/* ══ 5 ter. sincronización ══
+   jsdom no trae crypto.subtle, así que aquí solo se puede comprobar lo que
+   importa de verdad para quien no la use: que sin cifrado disponible la app
+   siga funcionando igual y no intente subir nada. El camino con cifrado se
+   prueba en navegador de verdad. */
+bloque("Sincronización inerte sin cifrado");
+{
+  const {w,d}=arrancar(null);
+  ok(w.syncPosible()===false,"sin crypto.subtle la sincronización se declara imposible");
+  ok(w.syncActivo()===false,"y por tanto nunca está activa");
+  ok(/no puede cifrar/.test(w.textoSync()),"el texto de Ajustes lo dice sin rodeos");
+
+  w.cargarEjemplos();
+  ok(w.S.proyectos.length===4,"guardar sigue funcionando con la sincronización apagada");
+  w.programarSubida();
+  ok(true,"programar una subida sin cifrado no lanza");
+
+  w.abrirAjustes();
+  const txt=d.getElementById("velo").textContent;
+  ok(/Sincronización/.test(txt),"Ajustes muestra la sección de sincronización");
+  ok(!/Activar sincronización/.test(txt),"pero no ofrece activarla si no se puede");
+  ok(/Copia de seguridad/.test(txt),"y la copia de seguridad sigue en su sitio");
+}
+
 /* ══ 6. casos límite ══ */
 bloque("Casos límite");
 {
