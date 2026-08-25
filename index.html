@@ -459,6 +459,7 @@ let syncPendiente=false, syncAplicando=false, syncTimer=null, syncEstado="", syn
    dispositivo mal configurado subiría su estado vacío encima del bueno: se
    dio en la prueba y es exactamente la clase de pérdida que no se perdona. */
 let syncBloqueado=false;
+let syncDetalle="";
 
 function syncPosible(){
   return !!(SYNC.url && SYNC.clave && typeof fetch==="function"
@@ -503,9 +504,33 @@ function apiSync(ruta,opts){
 }
 async function leerRemoto(){
   const r=await apiSync("/estado?id=eq."+encodeURIComponent(SYNC.id)+"&select=*");
-  if(!r.ok) throw new Error("HTTP "+r.status);
+  if(!r.ok) throw await fallo(r);
   const filas=await r.json();
   return filas.length?filas[0]:null;
+}
+
+/* Un «no se ha podido contactar con el servidor» no ayuda a nadie: las causas
+   son pocas y cada una tiene un arreglo distinto. Vale la pena mirarlas. */
+async function fallo(r){
+  const t=await r.text().catch(()=>"");
+  const e=new Error(t||("HTTP "+r.status));
+  e.status=r.status; e.cuerpo=t;
+  return e;
+}
+function porQueFalla(e){
+  if(!e) return "Fallo desconocido";
+  const t=String(e.cuerpo||e.message||"");
+  if(e.status===404||/PGRST205|Could not find the table|does not exist/i.test(t))
+    return "Falta la tabla «estado» en Supabase · ejecuta el SQL en el editor";
+  /* el orden importa: un fallo de RLS también llega como 403, así que se mira
+     antes que la clave o mandaríamos a Miguel a revisar algo que está bien */
+  if(/42501|row-level security|violates row-level/i.test(t))
+    return "Falta la regla de acceso de la tabla «estado» · ejecuta el bloque de policy";
+  if(e.status===401||e.status===403||/JWT|apikey|Invalid API key/i.test(t))
+    return "La clave de Supabase no vale · revisa que sea la pública (anon)";
+  if(e.name==="TypeError"||/Failed to fetch|NetworkError|Load failed/i.test(t))
+    return "No hay red, o la dirección de Supabase está mal escrita";
+  return "El servidor respondió "+(e.status||"raro")+" · "+t.slice(0,90);
 }
 
 /* ---- ciclo ---- */
@@ -532,8 +557,8 @@ async function sincronizar(reintento){
 
     if(syncPendiente) return empujar(local.rev,f,false);
 
-    syncEstado="al-dia"; syncCuando=Date.now();
-  }catch(e){ syncEstado="error"; }
+    syncEstado="al-dia"; syncCuando=Date.now(); syncDetalle="";
+  }catch(e){ syncEstado="error"; syncDetalle=porQueFalla(e); }
 }
 
 let yaReintentado=false;
@@ -544,11 +569,13 @@ async function empujar(rev,f,esNuevo){
     if(esNuevo){
       const r=await apiSync("/estado",{method:"POST",headers:{Prefer:"return=representation"},
         body:JSON.stringify(Object.assign({id:SYNC.id},cuerpo))});
-      filas=r.ok?await r.json():[];
+      if(!r.ok) throw await fallo(r);
+      filas=await r.json();
     }else{
       const r=await apiSync("/estado?id=eq."+encodeURIComponent(SYNC.id)+"&rev=eq."+rev,
         {method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(cuerpo)});
-      filas=r.ok?await r.json():[];
+      if(!r.ok) throw await fallo(r);
+      filas=await r.json();
     }
     if(!filas.length){                       /* alguien se adelantó entre el leer y el escribir */
       syncEstado="conflicto";
@@ -557,7 +584,7 @@ async function empujar(rev,f,esNuevo){
     }
     syncPendiente=false; syncEstado="al-dia"; syncCuando=Date.now();
     escribirSync({rev:cuerpo.rev,cuando:syncCuando});
-  }catch(e){ syncEstado="error"; }
+  }catch(e){ syncEstado="error"; syncDetalle=porQueFalla(e); }
 }
 
 async function adoptar(remoto,f){
@@ -586,7 +613,7 @@ function activarSync(){
   if(f.length<6) return avisar("La frase necesita al menos seis caracteres");
   try{ localStorage.setItem(CLAVE_FRASE,f); }catch(e){}
   escribirSync({rev:0});
-  syncBloqueado=false; syncEstado=""; syncPendiente=true;
+  syncBloqueado=false; syncEstado=""; syncDetalle=""; syncPendiente=true;
   cerrarModal();
   sincronizar().then(()=>{ avisar("Sincronización activada"); });
 }
@@ -602,7 +629,7 @@ function textoSync(){
   if(!frase()) return "Desactivada en este dispositivo";
   if(syncEstado==="sin-red") return "Sin conexión · se subirá al volver la red";
   if(syncEstado==="frase") return "La frase no coincide con la de la otra copia";
-  if(syncEstado==="error") return "No se ha podido contactar con el servidor";
+  if(syncEstado==="error") return syncDetalle||"No se ha podido contactar con el servidor";
   if(syncEstado==="al-dia"&&syncCuando){
     const m=Math.round((Date.now()-syncCuando)/60000);
     return m<1?"Al día · ahora mismo":m===1?"Al día · hace un minuto":"Al día · hace "+m+" minutos";
